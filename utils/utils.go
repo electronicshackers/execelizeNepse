@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 const (
@@ -101,32 +100,4 @@ func checkResponse(r *http.Response) error {
 	}
 
 	return fmt.Errorf("request failed with status %d", status)
-}
-
-func StringToTime(str string) (time.Time, error) {
-	t, err := time.Parse("2006-01-02", str)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return t, nil
-}
-
-func MapColumns(columns []string) []string {
-	sectorMap := map[string]string{
-		"hydro":    "Hydro Power",
-		"org":      "Organized Fund",
-		"life":     "Life Insurance",
-		"micro":    "Microcredit",
-		"dev-bank": "Development Bank",
-		"hotel":    "Hotels",
-		"non-life": "Non Life Insurance",
-		"finance":  "Finance",
-		"bank":     "Commercial Banks",
-		"trading":  "Trading",
-	}
-	var result []string
-	for _, column := range columns {
-		result = append(result, sectorMap[column])
-	}
-	return result
 }

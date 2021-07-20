@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"nepse-backend/nepse"
+	"time"
 )
 
 func ToFixed(num float64, precision int) float64 {
@@ -48,4 +49,32 @@ func removeDups(elements []nepse.Ticker) (nodups []nepse.Ticker) {
 		}
 	}
 	return
+}
+
+func StringToTime(str string) (time.Time, error) {
+	t, err := time.Parse("2006-01-02", str)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
+}
+
+func MapColumns(columns []string) []string {
+	sectorMap := map[string]string{
+		"hydro":    "Hydro Power",
+		"org":      "Organized Fund",
+		"life":     "Life Insurance",
+		"micro":    "Microcredit",
+		"dev-bank": "Development Bank",
+		"hotel":    "Hotels",
+		"non-life": "Non Life Insurance",
+		"finance":  "Finance",
+		"bank":     "Commercial Banks",
+		"trading":  "Trading",
+	}
+	var result []string
+	for _, column := range columns {
+		result = append(result, sectorMap[column])
+	}
+	return result
 }

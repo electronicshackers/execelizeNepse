@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 )
@@ -88,6 +89,18 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// for loop
+	// declare a variable with array of string
+	var days []string
+	for i := 1; i <= int(diffDays); i++ {
+		addedDate := startDate.Add(time.Hour * 24 * time.Duration(i)).Format("2006-01-02")
+		if addedDate != endDate.Format("2006-01-02") {
+			days = append(days, addedDate)
+		}
+	}
+	days = append(days, end)
+	fmt.Println("days", days)
+
 	nep, err := neweb.Neweb()
 
 	if err != nil {
@@ -144,7 +157,7 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			result := preprocessChange(re, start, end)
+			result := preprocessChange(re, start, end, days)
 
 			resu = append(resu, Result{
 				Ticker:                  fil.Ticker,
@@ -221,7 +234,7 @@ func getFilteredTickers(ticker []nepse.Ticker, sector string) []nepse.Ticker {
 	return filteredStocks
 }
 
-func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string) Result {
+func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string, days []string) Result {
 	var closeStart, closeEnd float64
 	var max = minHistory[0].HighPrice
 	var minP = minHistory[0].LowPrice
@@ -238,20 +251,26 @@ func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string
 			closeEnd = min.Price
 		}
 
-		if min.HighPrice > max {
-			max = min.HighPrice
-		}
+		for _, day := range days {
 
-		if min.AveragePrice > maxAvg {
-			maxAvg = min.AveragePrice
-		}
+			if day == min.Date {
 
-		if min.AveragePrice < minAvg {
-			minAvg = min.AveragePrice
-		}
+				if min.HighPrice > max {
+					max = min.HighPrice
+				}
 
-		if min.LowPrice < minP {
-			minP = min.LowPrice
+				if min.AveragePrice > maxAvg {
+					maxAvg = min.AveragePrice
+				}
+
+				if min.AveragePrice < minAvg {
+					minAvg = min.AveragePrice
+				}
+
+				if min.LowPrice < minP {
+					minP = min.LowPrice
+				}
+			}
 		}
 
 	}
