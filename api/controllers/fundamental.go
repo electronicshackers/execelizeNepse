@@ -12,25 +12,37 @@ import (
 )
 
 type KeyFinancialMetrics struct {
-	Ticker                     string  `json:"ticker"`
-	LTP                        float64 `json:"ltp"`
-	DiversionFromFair          float64 `json:"divesionFromFair"`
-	PE                         float64 `json:"pe"`
-	Eps                        float64 `json:"eps"`
-	FairValue                  float64 `json:"fairValue"`
-	Bvps                       float64 `json:"bvps"`
-	Pbv                        float64 `json:"pbv"`
-	Roa                        float64 `json:"roa"`
-	Roe                        float64 `json:"roe"`
-	NPL                        float64 `json:"npl"`
-	Listedshares               float64 `json:"listedShares"`
-	Reserves                   float64 `json:"reserves"`
-	Mktcap                     float64 `json:"mktCap"`
-	DistributableProfit        float64 `json:"distributableProfit"`
-	DistibutableProfitPerShare float64 `json:"distributableProfitPerShare"`
-	PaidUpCapital              float64 `json:"paidUpCapital"`
-	DividendCapacity           float64 `json:"dividendCapacity"`
-	RetentionRatio             float64 `json:"retentionRatio"`
+	Ticker                     string          `json:"ticker"`
+	LTP                        float64         `json:"ltp"`
+	DiversionFromFair          float64         `json:"divesionFromFair"`
+	PE                         float64         `json:"pe"`
+	Eps                        float64         `json:"eps"`
+	FairValue                  float64         `json:"fairValue"`
+	Bvps                       float64         `json:"bvps"`
+	Pbv                        float64         `json:"pbv"`
+	Roa                        float64         `json:"roa"`
+	Roe                        float64         `json:"roe"`
+	NPL                        float64         `json:"npl"`
+	Listedshares               float64         `json:"listedShares"`
+	Reserves                   float64         `json:"reserves"`
+	Mktcap                     float64         `json:"mktCap"`
+	DistributableProfit        float64         `json:"distributableProfit"`
+	DistibutableProfitPerShare float64         `json:"distributableProfitPerShare"`
+	PaidUpCapital              float64         `json:"paidUpCapital"`
+	DividendCapacity           float64         `json:"dividendCapacity"`
+	RetentionRatio             float64         `json:"retentionRatio"`
+	Hydro                      HydroKeyMetrics `json:"hydro"`
+}
+
+type HydroKeyMetrics struct {
+	TotalRevenue           float64 `json:"totalRevenue"`
+	NetIncome              float64 `json:"netIncome"`
+	IncomeFromSaleOfEnergy float64 `json:"incomeFromSaleOfEnergy"`
+	CostOfProduction       float64 `json:"costOfProduction"`
+	NetProfit              float64 `json:"netProfit"`
+	Investements           float64 `json:"investements"`
+	WorkInProgress         float64 `json:"workInProgress"`
+	CashInHand             float64 `json:"cashInHand"`
 }
 
 func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Request) {
