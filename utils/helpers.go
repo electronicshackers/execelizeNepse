@@ -70,6 +70,8 @@ func MapColumns(columns []string) []string {
 		"finance":  "Finance",
 		"bank":     "Commercial Banks",
 		"trading":  "Trading",
+		"manu":     "Manufacturing And Processing",
+		"telecom":  "Telecom",
 	}
 	var result []string
 	for _, column := range columns {
