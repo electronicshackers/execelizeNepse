@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/utils"
@@ -124,6 +125,25 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				}
 			}
 
+			if sector == "Hydro Power" {
+				if len(incomeStatement.Message.Data) > 0 {
+					key.Hydro.CostOfProduction = incomeStatement.Message.Data[0].Costofproduction
+					key.Hydro.IncomeFromSaleOfEnergy = incomeStatement.Message.Data[0].Energysales
+					key.Hydro.NetProfit = incomeStatement.Message.Data[0].Profitaftertax
+				}
+
+				if len(financial.Message.Data) != 0 {
+					key.Hydro.NetIncome = financial.Message.Data[0].Netincome
+					key.Hydro.TotalRevenue = financial.Message.Data[0].Totalrevenue
+				}
+
+				if len(balancesheet.Message.Data) != 0 {
+					key.Hydro.CashInHand = balancesheet.Message.Data[0].Cashandcashequivalents
+					key.Hydro.Investements = balancesheet.Message.Data[0].Investments
+					key.Hydro.WorkInProgress = balancesheet.Message.Data[0].Workinprogress
+				}
+			}
+
 			if len(financial.Message.Data) != 0 {
 				key.NPL = utils.ToFixed(financial.Message.Data[0].Nonperformingloannpltototalloan*100, 2)
 			}
@@ -147,6 +167,9 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 
 			keys = append(keys, key)
 		}
+
+		js, _ := json.MarshalIndent(keys, "", " ")
+		fmt.Println("js", string(js))
 
 		categories := map[string]string{
 			"A1": "Ticker", "B1": "LTP", "C1": "%Fair", "D1": "P/E", "E1": "EPS", "F1": "FairValue",
