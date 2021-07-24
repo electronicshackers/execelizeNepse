@@ -57,7 +57,6 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 	for _, sector := range sectors {
 
 		sectorStocks, err := biz.GetSectorStock(sector)
-		fmt.Println("sectorStocks", sectorStocks)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

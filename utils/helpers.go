@@ -35,7 +35,6 @@ func SetIntersection(s1, s2 []nepse.Ticker) (inter []nepse.Ticker) {
 			inter = append(inter, e)
 		}
 	}
-	fmt.Println("inter", inter)
 	return removeDups(inter)
 }
 
