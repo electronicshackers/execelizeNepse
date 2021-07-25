@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
 type KeyFinancialMetrics struct {
@@ -196,20 +194,6 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				excelVals = append(excelVals, excelVal)
 			}
 		}
-		f := excelize.NewFile()
-		for k, v := range categories {
-			f.SetCellValue("Sheet1", k, v)
-		}
-
-		for _, vals := range excelVals {
-			for k, v := range vals {
-				f.SetCellValue("Sheet1", k, v)
-			}
-		}
-
-		if err := f.SaveAs(fmt.Sprintf("%s/%s.xlsx", folderName, sector)); err != nil {
-			fmt.Println(err)
-		}
-
+		utils.CreateExcelFile(folderName, sector, categories, excelVals)
 	}
 }

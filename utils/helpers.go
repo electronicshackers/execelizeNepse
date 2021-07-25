@@ -5,6 +5,8 @@ import (
 	"math"
 	"nepse-backend/nepse"
 	"time"
+
+	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
 func ToFixed(num float64, precision int) float64 {
@@ -78,4 +80,21 @@ func MapColumns(columns []string) []string {
 		result = append(result, sectorMap[column])
 	}
 	return result
+}
+
+func CreateExcelFile(folderName, fileName string, headers map[string]string, data []map[string]interface{}) {
+	f := excelize.NewFile()
+	for k, v := range headers {
+		f.SetCellValue("Sheet1", k, v)
+	}
+
+	for _, vals := range data {
+		for k, v := range vals {
+			f.SetCellValue("Sheet1", k, v)
+		}
+	}
+
+	if err := f.SaveAs(fmt.Sprintf("%s/%s.xlsx", folderName, fileName)); err != nil {
+		fmt.Println(err)
+	}
 }
