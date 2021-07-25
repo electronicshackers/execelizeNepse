@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/utils"
@@ -34,11 +33,9 @@ type KeyFinancialMetrics struct {
 }
 
 type HydroKeyMetrics struct {
-	TotalRevenue           float64 `json:"totalRevenue"`
 	NetIncome              float64 `json:"netIncome"`
 	IncomeFromSaleOfEnergy float64 `json:"incomeFromSaleOfEnergy"`
 	CostOfProduction       float64 `json:"costOfProduction"`
-	NetProfit              float64 `json:"netProfit"`
 	Investements           float64 `json:"investements"`
 	WorkInProgress         float64 `json:"workInProgress"`
 	CashInHand             float64 `json:"cashInHand"`
@@ -58,11 +55,13 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 	biz, err := bizmandu.NewBizmandu()
 
 	if err != nil {
-		fmt.Println("err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if err != nil {
-		fmt.Println("err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	for _, sector := range sectors {
@@ -127,16 +126,14 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				if len(incomeStatement.Message.Data) > 0 {
 					key.Hydro.CostOfProduction = incomeStatement.Message.Data[0].Costofproduction
 					key.Hydro.IncomeFromSaleOfEnergy = incomeStatement.Message.Data[0].Energysales
-					key.Hydro.NetProfit = incomeStatement.Message.Data[0].Profitaftertax
 				}
 
 				if len(financial.Message.Data) != 0 {
 					key.Hydro.NetIncome = financial.Message.Data[0].Netincome
-					key.Hydro.TotalRevenue = financial.Message.Data[0].Totalrevenue
 				}
 
 				if len(balancesheet.Message.Data) != 0 {
-					key.Hydro.CashInHand = balancesheet.Message.Data[0].Cashandcashequivalents
+					key.Hydro.CashInHand = balancesheet.Message.Data[0].Cash
 					key.Hydro.Investements = balancesheet.Message.Data[0].Investments
 					key.Hydro.WorkInProgress = balancesheet.Message.Data[0].Workinprogress
 				}
@@ -166,34 +163,53 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			keys = append(keys, key)
 		}
 
-		js, _ := json.MarshalIndent(keys, "", " ")
-		fmt.Println("js", string(js))
-
-		categories := map[string]string{
-			"A1": "Ticker", "B1": "LTP", "C1": "%Fair", "D1": "P/E", "E1": "EPS", "F1": "FairValue",
-			"G1": "BookValue", "H1": "ROA", "I1": "ROE", "J1": "NPL", "K1": "TotalShare", "L1": "Reserve",
-			"M1": "MarketCap", "N1": "DisProfit", "O1": "paidUp", "P1": "ExepectedDividend", "Q1": "PBV",
-			"R1": "RetentionRatio", "S1": "Profit/Share",
-		}
 		folderName := "fundamental"
 		if _, err := os.Stat(folderName); os.IsNotExist(err) {
 			os.Mkdir(folderName, 0777)
 		}
+
+		categories := GetHeaders(sector)
+
 		var excelVals []map[string]interface{}
 
 		for k, v := range keys {
-			excelVal := map[string]interface{}{
-				utils.GetColumn("A", k): v.Ticker, utils.GetColumn("B", k): v.LTP, utils.GetColumn("C", k): v.DiversionFromFair,
-				utils.GetColumn("D", k): v.PE, utils.GetColumn("E", k): v.Eps, utils.GetColumn("F", k): v.FairValue, utils.GetColumn("G", k): v.Bvps,
-				utils.GetColumn("H", k): v.Roa, utils.GetColumn("I", k): v.Roe, utils.GetColumn("J", k): v.NPL,
-				utils.GetColumn("K", k): v.Listedshares, utils.GetColumn("L", k): v.Reserves, utils.GetColumn("M", k): v.Mktcap,
-				utils.GetColumn("N", k): v.DistributableProfit, utils.GetColumn("O", k): v.PaidUpCapital, utils.GetColumn("P", k): v.DividendCapacity,
-				utils.GetColumn("Q", k): v.Pbv, utils.GetColumn("R", k): v.RetentionRatio, utils.GetColumn("S", k): v.DistibutableProfitPerShare,
-			}
+			excelVal := GetValues(sector, v, k)
 			if v.Ticker != "" {
 				excelVals = append(excelVals, excelVal)
 			}
 		}
 		utils.CreateExcelFile(folderName, sector, categories, excelVals)
 	}
+}
+
+func GetHeaders(sector string) map[string]string {
+	headers := map[string]string{
+		"A1": "Ticker", "B1": "LTP", "C1": "EPS", "D1": "P/E", "E1": "Book Value",
+		"F1": "PBV", "G1": "Fair Value", "H1": "ROA", "I1": "ROE", "J1": "Total Share", "K1": "Reserve",
+	}
+
+	if sector == "Hydro Power" {
+		headers["L1"] = "Net Income"
+		headers["M1"] = "Energy Sale"
+		headers["N1"] = "Energy Production Cost"
+		headers["O1"] = "Work in Progress"
+		headers["P1"] = "Cash in Hand"
+	}
+	return headers
+}
+
+func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interface{} {
+	excelVal := map[string]interface{}{
+		utils.GetColumn("A", k): data.Ticker, utils.GetColumn("B", k): data.LTP, utils.GetColumn("C", k): data.Eps,
+		utils.GetColumn("D", k): data.PE, utils.GetColumn("E", k): data.Bvps, utils.GetColumn("F", k): data.Pbv, utils.GetColumn("G", k): data.FairValue,
+		utils.GetColumn("H", k): data.Roa, utils.GetColumn("I", k): data.Roe, utils.GetColumn("J", k): data.Listedshares, utils.GetColumn("K", k): data.Reserves,
+	}
+	if sector == "Hydro Power" {
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.Hydro.NetIncome
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hydro.IncomeFromSaleOfEnergy
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.CostOfProduction
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hydro.WorkInProgress
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hydro.CashInHand
+	}
+	return excelVal
 }
