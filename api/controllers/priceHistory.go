@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
 type Result struct {
@@ -205,21 +203,7 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 			os.Mkdir(folderName, 0777)
 		}
 
-		f := excelize.NewFile()
-		for k, v := range categories {
-			f.SetCellValue("Sheet1", k, v)
-		}
-
-		for _, vals := range excelVals {
-			for k, v := range vals {
-				f.SetCellValue("Sheet1", k, v)
-			}
-		}
-
-		if err := f.SaveAs(fmt.Sprintf("%s/%s.xlsx", folderName, sec)); err != nil {
-			fmt.Println(err)
-		}
-
+		utils.CreateExcelFile(folderName, sec, categories, excelVals)
 	}
 
 }
