@@ -230,6 +230,8 @@ type BalanceSheetData struct {
 			Otherloan                                              float64 `json:"OtherLoan"`
 			Nonbankingassets                                       float64 `json:"NonBankingAssets"`
 			Moneyatcallandshortnotice                              float64 `json:"MoneyAtCallAndShortNotice"`
+			Reportedpeannualized                                   float64 `json:"ReportedPeAnnualized"`
+			Bookvaluepershare                                      float64 `json:"BookValuePerShare"`
 		} `json:"data"`
 	} `json:"message"`
 }

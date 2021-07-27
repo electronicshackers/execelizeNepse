@@ -10,26 +10,26 @@ import (
 )
 
 type KeyFinancialMetrics struct {
-	Ticker                     string          `json:"ticker"`
-	LTP                        float64         `json:"ltp"`
-	DiversionFromFair          float64         `json:"divesionFromFair"`
-	PE                         float64         `json:"pe"`
-	Eps                        float64         `json:"eps"`
-	FairValue                  float64         `json:"fairValue"`
-	Bvps                       float64         `json:"bvps"`
-	Pbv                        float64         `json:"pbv"`
-	Roa                        float64         `json:"roa"`
-	Roe                        float64         `json:"roe"`
-	NPL                        float64         `json:"npl"`
-	Listedshares               float64         `json:"listedShares"`
-	Reserves                   float64         `json:"reserves"`
-	Mktcap                     float64         `json:"mktCap"`
-	DistributableProfit        float64         `json:"distributableProfit"`
-	DistibutableProfitPerShare float64         `json:"distributableProfitPerShare"`
-	PaidUpCapital              float64         `json:"paidUpCapital"`
-	DividendCapacity           float64         `json:"dividendCapacity"`
-	RetentionRatio             float64         `json:"retentionRatio"`
-	Hydro                      HydroKeyMetrics `json:"hydro"`
+	Ticker                     string                  `json:"ticker"`
+	LTP                        float64                 `json:"ltp"`
+	DiversionFromFair          float64                 `json:"divesionFromFair"`
+	PE                         float64                 `json:"pe"`
+	Eps                        float64                 `json:"eps"`
+	FairValue                  float64                 `json:"fairValue"`
+	Bvps                       float64                 `json:"bvps"`
+	Pbv                        float64                 `json:"pbv"`
+	Roa                        float64                 `json:"roa"`
+	Roe                        float64                 `json:"roe"`
+	NPL                        float64                 `json:"npl"`
+	Mktcap                     float64                 `json:"mktCap"`
+	DistributableProfit        float64                 `json:"distributableProfit"`
+	DistibutableProfitPerShare float64                 `json:"distributableProfitPerShare"`
+	PaidUpCapital              float64                 `json:"paidUpCapital"`
+	DividendCapacity           float64                 `json:"dividendCapacity"`
+	RetentionRatio             float64                 `json:"retentionRatio"`
+	Hydro                      HydroKeyMetrics         `json:"hydro"`
+	Hotel                      HotelKeyMetrics         `json:"hotel"`
+	LifeInsurance              LifeInsuranceKeyMetrics `json:"lifeInsurance"`
 }
 
 type HydroKeyMetrics struct {
@@ -39,6 +39,27 @@ type HydroKeyMetrics struct {
 	Investements           float64 `json:"investements"`
 	WorkInProgress         float64 `json:"workInProgress"`
 	CashInHand             float64 `json:"cashInHand"`
+}
+
+type HotelKeyMetrics struct {
+	TotalIncome             float64 `json:"totalIncome"`
+	TotalExpenditure        float64 `json:"totalExpenditure"`
+	NetIncome               float64 `json:"netIncome"`
+	TotalCurrentAssests     float64 `json:"totalCurrentAssests"`
+	TotalCurrentLiabilities float64 `json:"totalCurrentLiabilities"`
+	NetCurrentAssests       float64 `json:"netCurrentAssests"`
+	ReserveAndSurplus       float64 `json:"reserveAndSurplus"`
+}
+
+type LifeInsuranceKeyMetrics struct {
+	Income             float64 `json:"income"`
+	Expenditure        float64 `json:"expenditure"`
+	NetIncome          float64 `json:"netIncome"`
+	LifeInsurenceFund  float64 `json:"lifeInsurenceFund"`
+	ReserveAndSurplus  float64 `json:"reserveAndSurplus"`
+	TotalRevenue       float64 `json:"totalRevenue"`
+	GrossProfit        float64 `json:"grossProfit"`
+	CatastropheReserve float64 `json:"catastropheReserve"`
 }
 
 func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +131,6 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			key.LTP = detail.Message.Summary.Open
 			key.Bvps = utils.ToFixed(detail.Message.Summary.Bvps, 2)
 			key.Ticker = detail.Message.Keyfinancial.Ticker
-			key.Listedshares = detail.Message.Summary.Listedshares
 			key.LTP = price.Lasttradedprice
 			key.Mktcap = detail.Message.Summary.Mktcap
 			key.Pbv = utils.ToFixed(key.LTP/key.Bvps, 2)
@@ -139,19 +159,56 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				}
 			}
 
+			if sector == "Hotels" {
+				if len(incomeStatement.Message.Data) > 0 {
+					key.Hotel.TotalIncome = incomeStatement.Message.Data[0].Totalincome
+					key.Hotel.TotalExpenditure = incomeStatement.Message.Data[0].Totalexpenditure
+				}
+
+				if len(balancesheet.Message.Data) != 0 {
+					key.Hotel.TotalCurrentAssests = balancesheet.Message.Data[0].Totalcurrentassets
+					key.Hotel.TotalCurrentLiabilities = balancesheet.Message.Data[0].Totalcurrentliabilities
+					key.Hotel.NetCurrentAssests = balancesheet.Message.Data[0].Netcurrentassets
+					key.Hotel.ReserveAndSurplus = balancesheet.Message.Data[0].Reservesurplus
+				}
+
+				if len(financial.Message.Data) != 0 {
+					key.Hotel.NetIncome = financial.Message.Data[0].Netincome
+				}
+			}
+
+			if sector == "Life Insurance" {
+
+				if len(incomeStatement.Message.Data) > 0 {
+					key.LifeInsurance.Income = incomeStatement.Message.Data[0].Income
+					key.LifeInsurance.Expenditure = incomeStatement.Message.Data[0].Expenses
+				}
+
+				if len(balancesheet.Message.Data) != 0 {
+					key.LifeInsurance.LifeInsurenceFund = balancesheet.Message.Data[0].Lifeinsurancefund
+					key.LifeInsurance.CatastropheReserve = balancesheet.Message.Data[0].Catastrophereserve
+					key.LifeInsurance.ReserveAndSurplus = balancesheet.Message.Data[0].Reservesurplus
+				}
+
+				if len(financial.Message.Data) != 0 {
+					key.LifeInsurance.NetIncome = financial.Message.Data[0].Netincome
+					key.LifeInsurance.GrossProfit = financial.Message.Data[0].Grossprofit
+					key.LifeInsurance.TotalRevenue = financial.Message.Data[0].Totalrevenue
+				}
+			}
+
 			if len(financial.Message.Data) != 0 {
 				key.NPL = utils.ToFixed(financial.Message.Data[0].Nonperformingloannpltototalloan*100, 2)
 			}
 
 			if len(balancesheet.Message.Data) != 0 {
 				key.PaidUpCapital = float64(balancesheet.Message.Data[0].Paidupcapital)
-				key.Reserves = float64(balancesheet.Message.Data[0].Reserves)
 			}
 
-			if len(incomeStatement.Message.Data) != 0 {
-				key.DistributableProfit = float64(incomeStatement.Message.Data[0].Freeprofit)
-				key.DistibutableProfitPerShare = utils.ToFixed((key.DistributableProfit/key.Listedshares)*100, 2)
-			}
+			// if len(incomeStatement.Message.Data) != 0 {
+			// 	key.DistributableProfit = float64(incomeStatement.Message.Data[0].Freeprofit)
+			// 	key.DistibutableProfitPerShare = utils.ToFixed((key.DistributableProfit/key.Listedshares)*100, 2)
+			// }
 
 			if len(balancesheet.Message.Data) != 0 && len(incomeStatement.Message.Data) != 0 {
 				key.DividendCapacity = utils.ToFixed((key.DistributableProfit/key.PaidUpCapital)*100, 2)
@@ -185,16 +242,38 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 func GetHeaders(sector string) map[string]string {
 	headers := map[string]string{
 		"A1": "Ticker", "B1": "LTP", "C1": "EPS", "D1": "P/E", "E1": "Book Value",
-		"F1": "PBV", "G1": "Fair Value", "H1": "ROA", "I1": "ROE", "J1": "Total Share", "K1": "Reserve",
+		"F1": "PBV", "G1": "Fair Value", "H1": "ROA", "I1": "ROE",
 	}
 
 	if sector == "Hydro Power" {
-		headers["L1"] = "Net Income"
-		headers["M1"] = "Energy Sale"
-		headers["N1"] = "Energy Production Cost"
-		headers["O1"] = "Work in Progress"
-		headers["P1"] = "Cash in Hand"
+		headers["J1"] = "Net Income"
+		headers["K1"] = "Energy Sale"
+		headers["L1"] = "Energy Production Cost"
+		headers["M1"] = "Work in Progress"
+		headers["N1"] = "Cash in Hand"
 	}
+
+	if sector == "Hotels" {
+		headers["J1"] = "Total Income"
+		headers["K1"] = "Total Expenditure"
+		headers["L1"] = "Net Income"
+		headers["M1"] = "Total Current Assests"
+		headers["N1"] = "Total Current Liabilities"
+		headers["O1"] = "Net Current Assets"
+		headers["P1"] = "Reserve & Surplus"
+	}
+
+	if sector == "Life Insurance" {
+		headers["J1"] = "Income"
+		headers["K1"] = "Expenditure"
+		headers["L1"] = "Net Income"
+		headers["M1"] = "Life Insurance Fund"
+		headers["N1"] = "Catastrophe Reserve"
+		headers["O1"] = "Total Revenue"
+		headers["P1"] = "Gross Profit"
+		headers["Q1"] = "Reserve"
+	}
+
 	return headers
 }
 
@@ -202,14 +281,35 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 	excelVal := map[string]interface{}{
 		utils.GetColumn("A", k): data.Ticker, utils.GetColumn("B", k): data.LTP, utils.GetColumn("C", k): data.Eps,
 		utils.GetColumn("D", k): data.PE, utils.GetColumn("E", k): data.Bvps, utils.GetColumn("F", k): data.Pbv, utils.GetColumn("G", k): data.FairValue,
-		utils.GetColumn("H", k): data.Roa, utils.GetColumn("I", k): data.Roe, utils.GetColumn("J", k): data.Listedshares, utils.GetColumn("K", k): data.Reserves,
+		utils.GetColumn("H", k): data.Roa, utils.GetColumn("I", k): data.Roe,
 	}
 	if sector == "Hydro Power" {
-		excelVal[fmt.Sprintf("L%d", k+2)] = data.Hydro.NetIncome
-		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hydro.IncomeFromSaleOfEnergy
-		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.CostOfProduction
-		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hydro.WorkInProgress
-		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hydro.CashInHand
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.Hydro.NetIncome
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.Hydro.IncomeFromSaleOfEnergy
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.Hydro.CostOfProduction
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hydro.WorkInProgress
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.CashInHand
 	}
+	if sector == "Hotels" {
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.Hotel.TotalIncome
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.Hotel.TotalExpenditure
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.Hotel.NetIncome
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hotel.TotalCurrentAssests
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hotel.TotalCurrentLiabilities
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hotel.NetCurrentAssests
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hotel.ReserveAndSurplus
+	}
+
+	if sector == "Life Insurance" {
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.LifeInsurance.Income
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.LifeInsurance.Expenditure
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.LifeInsurance.NetIncome
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.LifeInsurance.LifeInsurenceFund
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.LifeInsurance.CatastropheReserve
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.LifeInsurance.TotalRevenue
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.LifeInsurance.GrossProfit
+		excelVal[fmt.Sprintf("Q%d", k+2)] = data.LifeInsurance.ReserveAndSurplus
+	}
+
 	return excelVal
 }
