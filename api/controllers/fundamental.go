@@ -70,9 +70,10 @@ type HydroKeyMetrics struct {
 	NetIncome              float64 `json:"netIncome"`
 	IncomeFromSaleOfEnergy float64 `json:"incomeFromSaleOfEnergy"`
 	CostOfProduction       float64 `json:"costOfProduction"`
+	IncomeByCost           float64 `json:"incomeByCost"`
 	Investements           float64 `json:"investements"`
-	WorkInProgress         float64 `json:"workInProgress"`
-	CashInHand             float64 `json:"cashInHand"`
+	Reserves               float64 `json:"reserves"`
+	NetInterestIncome      float64 `json:"netInterestIncome"`
 }
 
 type HotelKeyMetrics struct {
@@ -238,6 +239,8 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				if len(incomeStatement.Message.Data) > 0 {
 					key.Hydro.CostOfProduction = incomeStatement.Message.Data[0].Costofproduction
 					key.Hydro.IncomeFromSaleOfEnergy = incomeStatement.Message.Data[0].Energysales
+					key.Hydro.IncomeByCost = utils.ToFixed((key.Hydro.IncomeFromSaleOfEnergy / key.Hydro.CostOfProduction), 2)
+					key.Hydro.NetInterestIncome = utils.ToFixed(incomeStatement.Message.Data[0].Interestincomeexpense, 2)
 				}
 
 				if len(financial.Message.Data) != 0 {
@@ -245,9 +248,8 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				}
 
 				if len(balancesheet.Message.Data) != 0 {
-					key.Hydro.CashInHand = balancesheet.Message.Data[0].Cash
 					key.Hydro.Investements = balancesheet.Message.Data[0].Investments
-					key.Hydro.WorkInProgress = balancesheet.Message.Data[0].Workinprogress
+					key.Hydro.Reserves = balancesheet.Message.Data[0].Reserves
 				}
 			}
 
@@ -384,9 +386,11 @@ func GetHeaders(sector string) map[string]string {
 	if sector == HydroPower {
 		headers["J1"] = "Net Income"
 		headers["K1"] = "Energy Sale"
-		headers["L1"] = "Energy Production Cost"
-		headers["M1"] = "Work in Progress"
-		headers["N1"] = "Cash in Hand"
+		headers["L1"] = "Production Cost"
+		headers["M1"] = "Sale/Production"
+		headers["N1"] = "Investement"
+		headers["O1"] = "Reserves"
+		headers["P1"] = "Interest Income"
 	}
 
 	if sector == Hotels {
@@ -449,8 +453,10 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("J%d", k+2)] = data.Hydro.NetIncome
 		excelVal[fmt.Sprintf("K%d", k+2)] = data.Hydro.IncomeFromSaleOfEnergy
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.Hydro.CostOfProduction
-		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hydro.WorkInProgress
-		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.CashInHand
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.Hydro.IncomeByCost
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.Investements
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hydro.Reserves
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hydro.NetInterestIncome
 	}
 	if sector == Hotels {
 		excelVal[fmt.Sprintf("J%d", k+2)] = data.Hotel.TotalIncome
