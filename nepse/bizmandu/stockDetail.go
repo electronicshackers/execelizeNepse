@@ -139,3 +139,20 @@ func (b *BizmanduAPI) GetSummary(ticker string) (*StockSummary, error) {
 
 	return res, nil
 }
+
+func (b *BizmanduAPI) GetSummaryChannel(ticker string, c chan *StockSummary) {
+	url := b.buildTickerSlug(Summary, ticker)
+
+	req, err := b.client.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return
+	}
+
+	res := &StockSummary{}
+	if _, err := b.client.Do(context.Background(), req, res); err != nil {
+		return
+	}
+
+	c <- res
+}

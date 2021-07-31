@@ -3,7 +3,6 @@ package bizmandu
 import (
 	"context"
 	"nepse-backend/nepse"
-	"nepse-backend/nepse/neweb"
 	"nepse-backend/utils"
 	"net/http"
 	"strings"
@@ -39,26 +38,10 @@ func (b *BizmanduAPI) GetStocks() ([]nepse.Ticker, error) {
 	return stocks, nil
 }
 
-func (b *BizmanduAPI) GetSectorStock(sector string) ([]nepse.Ticker, error) {
-	tickers, err := b.GetStocks()
-	if err != nil {
-		return nil, err
-	}
-
-	nep, err := neweb.Neweb()
-
-	if err != nil {
-		return nil, err
-	}
-
-	allStocks, err := nep.GetStocks()
-	if err != nil {
-		return nil, err
-	}
-
+func (b *BizmanduAPI) GetSectorStock(sector string, newWeb, biz []nepse.Ticker) ([]nepse.Ticker, error) {
 	var stocks []nepse.Ticker
 
-	for _, ticker := range tickers {
+	for _, ticker := range biz {
 		if ticker.Sector == sector {
 			if !strings.Contains(ticker.Companyname, "Promoter") {
 				stocks = append(stocks, nepse.Ticker{
@@ -69,6 +52,5 @@ func (b *BizmanduAPI) GetSectorStock(sector string) ([]nepse.Ticker, error) {
 			}
 		}
 	}
-
-	return utils.SetIntersection(allStocks, stocks), nil
+	return utils.SetIntersection(newWeb, stocks), nil
 }
