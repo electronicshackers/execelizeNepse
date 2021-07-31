@@ -4,3 +4,6 @@
 fundamental/
 2021*/
 __*
+*.prof
+*.xlsx
+*/*.xlsx

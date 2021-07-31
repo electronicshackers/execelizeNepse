@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/nepse/neweb"
 	"nepse-backend/utils"
 	"net/http"
 	"os"
+	"runtime/pprof"
 	"strings"
 	"time"
 )
@@ -84,14 +86,14 @@ type HotelKeyMetrics struct {
 }
 
 type LifeInsuranceKeyMetrics struct {
-	Income             float64 `json:"income"`
-	Expenditure        float64 `json:"expenditure"`
-	NetIncome          float64 `json:"netIncome"`
-	LifeInsuranceFund  float64 `json:"lifeInsuranceFund"`
-	ReserveAndSurplus  float64 `json:"reserveAndSurplus"`
-	TotalRevenue       float64 `json:"totalRevenue"`
-	GrossProfit        float64 `json:"grossProfit"`
-	CatastropheReserve float64 `json:"catastropheReserve"`
+	TotalPremium        float64 `json:"totalPremium"`
+	TotalNumberOfPolicy float64 `json:"totalNumberOfPolicy"`
+	NetIncome           float64 `json:"netIncome"`
+	LifeInsuranceFund   float64 `json:"lifeInsuranceFund"`
+	ReserveAndSurplus   float64 `json:"reserveAndSurplus"`
+	TotalRevenue        float64 `json:"totalRevenue"`
+	GrossProfit         float64 `json:"grossProfit"`
+	CatastropheReserve  float64 `json:"catastropheReserve"`
 }
 
 type NonLifeInsuranceKeyMetrics struct {
@@ -114,6 +116,12 @@ type ManufacturingKeyMetrics struct {
 }
 
 func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Request) {
+	f, err := os.Create("Fundamental.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 	start := time.Now()
 	sector := r.URL.Query().Get("sector")
 	if sector == "" {
@@ -263,12 +271,6 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			}
 
 			if sector == LifeInsurance {
-
-				if len(incomeStatement.Message.Data) > 0 {
-					key.LifeInsurance.Income = incomeStatement.Message.Data[0].Income
-					key.LifeInsurance.Expenditure = incomeStatement.Message.Data[0].Expenses
-				}
-
 				if len(balancesheet.Message.Data) != 0 {
 					key.LifeInsurance.LifeInsuranceFund = balancesheet.Message.Data[0].Lifeinsurancefund
 					key.LifeInsurance.CatastropheReserve = balancesheet.Message.Data[0].Catastrophereserve
@@ -279,6 +281,8 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 					key.LifeInsurance.NetIncome = financial.Message.Data[0].Netincome
 					key.LifeInsurance.GrossProfit = financial.Message.Data[0].Grossprofit
 					key.LifeInsurance.TotalRevenue = financial.Message.Data[0].Totalrevenue
+					key.LifeInsurance.TotalPremium = financial.Message.Data[0].Totalpremium
+					key.LifeInsurance.TotalNumberOfPolicy = financial.Message.Data[0].Totalnoofpolicies
 				}
 			}
 
@@ -411,8 +415,8 @@ func GetHeaders(sector string) map[string]string {
 	}
 
 	if sector == NonLifeInsurance {
-		headers["J1"] = "Income"
-		headers["K1"] = "Expenditure"
+		headers["J1"] = "Total Premium"
+		headers["K1"] = "No.of Policy"
 		headers["L1"] = "Net Income"
 		headers["M1"] = "Insurance Fund"
 		headers["N1"] = "Catastrophe Reserve"
@@ -464,8 +468,8 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 	}
 
 	if sector == LifeInsurance {
-		excelVal[fmt.Sprintf("J%d", k+2)] = data.LifeInsurance.Income
-		excelVal[fmt.Sprintf("K%d", k+2)] = data.LifeInsurance.Expenditure
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.LifeInsurance.TotalPremium
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.LifeInsurance.TotalNumberOfPolicy
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.LifeInsurance.NetIncome
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.LifeInsurance.LifeInsuranceFund
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.LifeInsurance.CatastropheReserve

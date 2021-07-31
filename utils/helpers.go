@@ -97,4 +97,5 @@ func CreateExcelFile(folderName, fileName string, headers map[string]string, dat
 	if err := f.SaveAs(fmt.Sprintf("%s/%s.xlsx", folderName, fileName)); err != nil {
 		fmt.Println(err)
 	}
+
 }
