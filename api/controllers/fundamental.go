@@ -97,14 +97,14 @@ type LifeInsuranceKeyMetrics struct {
 }
 
 type NonLifeInsuranceKeyMetrics struct {
-	Income             float64 `json:"income"`
-	Expenditure        float64 `json:"expenditure"`
-	NetIncome          float64 `json:"netIncome"`
-	InsuranceFund      float64 `json:"InsuranceFund"`
-	ReserveAndSurplus  float64 `json:"reserveAndSurplus"`
-	TotalRevenue       float64 `json:"totalRevenue"`
-	GrossProfit        float64 `json:"grossProfit"`
-	CatastropheReserve float64 `json:"catastropheReserve"`
+	TotalPolicy       float64 `json:"totalPolicy"`
+	RenewedPolicy     float64 `json:"renewedPolicy"`
+	TotalByRenewed    float64 `json:"totalByRenewed"`
+	NetIncome         float64 `json:"netIncome"`
+	InsuranceFund     float64 `json:"InsuranceFund"`
+	ReserveAndSurplus float64 `json:"reserveAndSurplus"`
+	TotalRevenue      float64 `json:"totalRevenue"`
+	TotalInvestment   float64 `json:"totalInvestment"`
 }
 
 type ManufacturingKeyMetrics struct {
@@ -287,19 +287,17 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			}
 
 			if sector == NonLifeInsurance {
-				if len(incomeStatement.Message.Data) > 0 {
-					key.NonLifeInsurance.Income = incomeStatement.Message.Data[0].Income
-					key.NonLifeInsurance.Expenditure = incomeStatement.Message.Data[0].Expenses
-				}
 				if len(balancesheet.Message.Data) != 0 {
 					key.NonLifeInsurance.InsuranceFund = balancesheet.Message.Data[0].Insurancefund
 					key.NonLifeInsurance.ReserveAndSurplus = balancesheet.Message.Data[0].Reservesurplus
-					key.NonLifeInsurance.CatastropheReserve = balancesheet.Message.Data[0].Catastrophereserve
+					key.NonLifeInsurance.TotalInvestment = balancesheet.Message.Data[0].Shortterminvestmentsandloans + balancesheet.Message.Data[0].Longterminvestmentsloan
 				}
 				if len(financial.Message.Data) != 0 {
 					key.NonLifeInsurance.NetIncome = financial.Message.Data[0].Netincome
-					key.NonLifeInsurance.GrossProfit = financial.Message.Data[0].Grossprofit
+					key.NonLifeInsurance.TotalPolicy = financial.Message.Data[0].Totalnoofpolicies
+					key.NonLifeInsurance.RenewedPolicy = financial.Message.Data[0].Totalrenewedpolicies
 					key.NonLifeInsurance.TotalRevenue = financial.Message.Data[0].Totalrevenue
+					key.NonLifeInsurance.TotalByRenewed = utils.ToFixed((key.NonLifeInsurance.TotalPolicy / key.NonLifeInsurance.RenewedPolicy), 2)
 				}
 			}
 
@@ -404,24 +402,24 @@ func GetHeaders(sector string) map[string]string {
 	}
 
 	if sector == LifeInsurance {
-		headers["J1"] = "Income"
-		headers["K1"] = "Expenditure"
-		headers["L1"] = "Net Income"
+		headers["J1"] = "TotalPolicy"
+		headers["K1"] = "TotalRenewedPolicy"
+		headers["L1"] = "Total/Renewed"
 		headers["M1"] = "Life Insurance Fund"
 		headers["N1"] = "Catastrophe Reserve"
 		headers["O1"] = "Total Revenue"
-		headers["P1"] = "Gross Profit"
+		headers["P1"] = "Net Income"
 		headers["Q1"] = "Reserve"
 	}
 
 	if sector == NonLifeInsurance {
-		headers["J1"] = "Total Premium"
-		headers["K1"] = "No.of Policy"
-		headers["L1"] = "Net Income"
-		headers["M1"] = "Insurance Fund"
-		headers["N1"] = "Catastrophe Reserve"
+		headers["J1"] = "TotalPolicy"
+		headers["K1"] = "TotalRenewedPolicy"
+		headers["L1"] = "Total/Renewed"
+		headers["M1"] = "Life Insurance Fund"
+		headers["N1"] = "Total Investment"
 		headers["O1"] = "Total Revenue"
-		headers["P1"] = "Gross Profit"
+		headers["P1"] = "Net Income"
 		headers["Q1"] = "Reserve"
 	}
 
@@ -477,16 +475,18 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("P%d", k+2)] = data.LifeInsurance.GrossProfit
 		excelVal[fmt.Sprintf("Q%d", k+2)] = data.LifeInsurance.ReserveAndSurplus
 	}
+
 	if sector == NonLifeInsurance {
-		excelVal[fmt.Sprintf("J%d", k+2)] = data.NonLifeInsurance.Income
-		excelVal[fmt.Sprintf("K%d", k+2)] = data.NonLifeInsurance.Expenditure
-		excelVal[fmt.Sprintf("L%d", k+2)] = data.NonLifeInsurance.NetIncome
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.NonLifeInsurance.TotalPolicy
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.NonLifeInsurance.RenewedPolicy
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.NonLifeInsurance.TotalByRenewed
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.NonLifeInsurance.InsuranceFund
-		excelVal[fmt.Sprintf("N%d", k+2)] = data.NonLifeInsurance.CatastropheReserve
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.NonLifeInsurance.TotalInvestment
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.NonLifeInsurance.TotalRevenue
-		excelVal[fmt.Sprintf("P%d", k+2)] = data.NonLifeInsurance.GrossProfit
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.NonLifeInsurance.NetIncome
 		excelVal[fmt.Sprintf("Q%d", k+2)] = data.NonLifeInsurance.ReserveAndSurplus
 	}
+
 	if sector == ManufacturingAndProcessing {
 		excelVal[fmt.Sprintf("J%d", k+2)] = data.Manufacturing.TotalIncome
 		excelVal[fmt.Sprintf("K%d", k+2)] = data.Manufacturing.TotalExpenditure
