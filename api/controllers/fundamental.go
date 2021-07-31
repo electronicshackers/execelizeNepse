@@ -92,8 +92,7 @@ type LifeInsuranceKeyMetrics struct {
 	LifeInsuranceFund   float64 `json:"lifeInsuranceFund"`
 	ReserveAndSurplus   float64 `json:"reserveAndSurplus"`
 	TotalRevenue        float64 `json:"totalRevenue"`
-	GrossProfit         float64 `json:"grossProfit"`
-	CatastropheReserve  float64 `json:"catastropheReserve"`
+	TotalInvestment     float64 `json:"totalInvestment"`
 }
 
 type NonLifeInsuranceKeyMetrics struct {
@@ -273,13 +272,12 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			if sector == LifeInsurance {
 				if len(balancesheet.Message.Data) != 0 {
 					key.LifeInsurance.LifeInsuranceFund = balancesheet.Message.Data[0].Lifeinsurancefund
-					key.LifeInsurance.CatastropheReserve = balancesheet.Message.Data[0].Catastrophereserve
+					key.LifeInsurance.TotalInvestment = balancesheet.Message.Data[0].Shortterminvestmentsandloans + balancesheet.Message.Data[0].Longterminvestmentsloan
 					key.LifeInsurance.ReserveAndSurplus = balancesheet.Message.Data[0].Reservesurplus
 				}
 
 				if len(financial.Message.Data) != 0 {
 					key.LifeInsurance.NetIncome = financial.Message.Data[0].Netincome
-					key.LifeInsurance.GrossProfit = financial.Message.Data[0].Grossprofit
 					key.LifeInsurance.TotalRevenue = financial.Message.Data[0].Totalrevenue
 					key.LifeInsurance.TotalPremium = financial.Message.Data[0].Totalpremium
 					key.LifeInsurance.TotalNumberOfPolicy = financial.Message.Data[0].Totalnoofpolicies
@@ -402,14 +400,13 @@ func GetHeaders(sector string) map[string]string {
 	}
 
 	if sector == LifeInsurance {
-		headers["J1"] = "TotalPolicy"
-		headers["K1"] = "TotalRenewedPolicy"
-		headers["L1"] = "Total/Renewed"
+		headers["J1"] = "Total Premium"
+		headers["K1"] = "Total Policy"
+		headers["L1"] = "Net Income"
 		headers["M1"] = "Life Insurance Fund"
-		headers["N1"] = "Catastrophe Reserve"
+		headers["N1"] = "Total Investment"
 		headers["O1"] = "Total Revenue"
-		headers["P1"] = "Net Income"
-		headers["Q1"] = "Reserve"
+		headers["P1"] = "Reserve"
 	}
 
 	if sector == NonLifeInsurance {
@@ -470,10 +467,9 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("K%d", k+2)] = data.LifeInsurance.TotalNumberOfPolicy
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.LifeInsurance.NetIncome
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.LifeInsurance.LifeInsuranceFund
-		excelVal[fmt.Sprintf("N%d", k+2)] = data.LifeInsurance.CatastropheReserve
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.LifeInsurance.TotalInvestment
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.LifeInsurance.TotalRevenue
-		excelVal[fmt.Sprintf("P%d", k+2)] = data.LifeInsurance.GrossProfit
-		excelVal[fmt.Sprintf("Q%d", k+2)] = data.LifeInsurance.ReserveAndSurplus
+		excelVal[fmt.Sprintf("P%d", k+2)] = data.LifeInsurance.ReserveAndSurplus
 	}
 
 	if sector == NonLifeInsurance {
