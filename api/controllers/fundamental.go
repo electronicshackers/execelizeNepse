@@ -45,6 +45,15 @@ type KeyFinancialMetrics struct {
 	NonLifeInsurance  NonLifeInsuranceKeyMetrics `json:"nonLifeInsurance"`
 	Manufacturing     ManufacturingKeyMetrics    `json:"manufacturing"`
 	BFI               BFIKeyMetrics              `json:"bfi"`
+	Microcredit       MicrocreditKeyMetrics      `json:"microcredit"`
+}
+
+type MicrocreditKeyMetrics struct {
+	Assests                   float64 `json:"assests"`
+	NetInterestIncome         float64 `json:"netInterestIncome"`
+	NetIncome                 float64 `json:"netIncome"`
+	Reserves                  float64 `json:"reserves"`
+	NetInterestIncomePerShare float64 `json:"netInterestIncomePerShare"`
 }
 
 type BFIKeyMetrics struct {
@@ -200,6 +209,24 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				}
 			}
 
+			if sector == Microcredit {
+				if len(balancesheet.Message.Data) != 0 {
+					key.Microcredit.Assests = utils.ToFixed(balancesheet.Message.Data[0].Totalassets, 2)
+					key.Microcredit.Reserves = utils.ToFixed(balancesheet.Message.Data[0].Reservesandsurplus, 2)
+				}
+
+				if len(incomeStatement.Message.Data) != 0 {
+					key.Microcredit.NetInterestIncome = utils.ToFixed(incomeStatement.Message.Data[0].NetInterestincome, 2)
+					key.Microcredit.NetIncome = utils.ToFixed(incomeStatement.Message.Data[0].Netprofitorloss, 2)
+
+				}
+
+				if len(financial.Message.Data) != 0 {
+					totalShare := financial.Message.Data[0].Outstandingshares
+					key.Microcredit.NetInterestIncomePerShare = utils.ToFixed((key.Microcredit.NetInterestIncome / totalShare), 2)
+				}
+			}
+
 			if sector == HydroPower {
 				if len(incomeStatement.Message.Data) > 0 {
 					key.Hydro.CostOfProduction = incomeStatement.Message.Data[0].Costofproduction
@@ -338,6 +365,14 @@ func GetHeaders(sector string) map[string]string {
 		"F1": "PBV", "G1": "Fair Value", "H1": "ROA", "I1": "ROE",
 	}
 
+	if sector == Microcredit {
+		headers["J1"] = "Assests"
+		headers["K1"] = "NetInterestIncome"
+		headers["L1"] = "NetIncome"
+		headers["M1"] = "Reserves"
+		headers["N1"] = "NetInterestIncomePerShare"
+	}
+
 	if sector == CommercialBanks || sector == DevelopmentBank || sector == Finance {
 		headers["J1"] = "NPL"
 		headers["K1"] = "Reserve"
@@ -454,6 +489,14 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.Manufacturing.NetIncome
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.Manufacturing.TotalRevenue
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.Manufacturing.TotalEquityAndLiabilities
+	}
+
+	if sector == Microcredit {
+		excelVal[fmt.Sprintf("J%d", k+2)] = data.Microcredit.Assests
+		excelVal[fmt.Sprintf("K%d", k+2)] = data.Microcredit.NetInterestIncome
+		excelVal[fmt.Sprintf("L%d", k+2)] = data.Microcredit.NetIncome
+		excelVal[fmt.Sprintf("M%d", k+2)] = data.Microcredit.Reserves
+		excelVal[fmt.Sprintf("N%d", k+2)] = data.Microcredit.NetInterestIncomePerShare
 	}
 	return excelVal
 }
