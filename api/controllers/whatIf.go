@@ -18,7 +18,7 @@ type WhatIfRequest struct {
 	Stock    string    `json:"stock"`
 	Amount   float64   `json:"amount"`
 	Quantity int       `json:"quantity"`
-	BuyDate  int64     `json:"buyDate"`
+	BuyDate  string    `json:"buyDate"`
 	SellDate time.Time `json:"sellDate"`
 }
 
@@ -36,6 +36,14 @@ func (server *Server) WhatIf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	buyDate, err := utils.StringToTime(whatIf.BuyDate)
+	if err != nil {
+		http.Error(w, "Start date is invalid", http.StatusBadRequest)
+		return
+	}
+
+	buyTime := buyDate.Unix()
+
 	timeNow := time.Now().Unix()
 
 	biz, err := bizmandu.NewBizmandu()
@@ -52,14 +60,14 @@ func (server *Server) WhatIf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prices, err := biz.GetPriceHistory(whatIf.Stock, whatIf.BuyDate, timeNow)
+	prices, err := biz.GetPriceHistory(whatIf.Stock, buyTime, timeNow)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	indexOfTime := closest(prices.T, int(whatIf.BuyDate))
+	indexOfTime := closest(prices.T, int(buyTime))
 
 	priceAtTime := prices.C[indexOfTime]
 
@@ -69,10 +77,8 @@ func (server *Server) WhatIf(w http.ResponseWriter, r *http.Request) {
 
 	var yield DividendYield
 
-	year := time.Unix(whatIf.BuyDate, 0).Year()
+	year := time.Unix(buyTime, 0).Year()
 	yield = calculateDividendYield(dividend, year, whatIf.Quantity)
-
-	fmt.Println("yield", yield)
 
 	indexOfSellingTime := closest(prices.T, int(timeNow))
 	sellingPrice := prices.C[indexOfSellingTime]
