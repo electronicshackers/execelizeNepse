@@ -24,6 +24,16 @@ type CurrentPrice struct {
 	} `json:"message"`
 }
 
+type PriceHistoryResponse struct {
+	S string    `json:"s"`
+	T []int     `json:"t"`
+	C []float64 `json:"c"`
+	O []float64 `json:"o"`
+	H []float64 `json:"h"`
+	L []float64 `json:"l"`
+	V []int     `json:"v"`
+}
+
 type StockDetails struct {
 	Response float64 `json:"response"`
 	Error    string  `json:"error"`
@@ -98,6 +108,23 @@ type StockSummary struct {
 	} `json:"message"`
 }
 
+type DividendHistory struct {
+	Response int    `json:"response"`
+	Error    string `json:"error"`
+	Message  struct {
+		Ticker   string `json:"ticker"`
+		Dividend []struct {
+			Year  string  `json:"year"`
+			Cash  float64 `json:"cash"`
+			Bonus float64 `json:"bonus"`
+		} `json:"dividend"`
+		Rights []struct {
+			Date   int64   `json:"date"`
+			Rights float64 `json:"rights"`
+		} `json:"rights"`
+	} `json:"message"`
+}
+
 func (b *BizmanduAPI) GetCurrentPrice(ticker string) (*nepse.LastTradingDayStats, error) {
 	url := b.buildTickerSlug(Header, ticker)
 	req, err := b.client.NewRequest(http.MethodGet, url, nil)
@@ -140,19 +167,35 @@ func (b *BizmanduAPI) GetSummary(ticker string) (*StockSummary, error) {
 	return res, nil
 }
 
-func (b *BizmanduAPI) GetSummaryChannel(ticker string, c chan *StockSummary) {
-	url := b.buildTickerSlug(Summary, ticker)
+func (b *BizmanduAPI) GetPriceHistory(ticker string, start, end int64) (*PriceHistoryResponse, error) {
+	url := b.buildPriceHistorySlug(PriceHistory, ticker, start, end)
 
 	req, err := b.client.NewRequest(http.MethodGet, url, nil)
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	res := &StockSummary{}
+	res := &PriceHistoryResponse{}
 	if _, err := b.client.Do(context.Background(), req, res); err != nil {
-		return
+		return nil, err
 	}
 
-	c <- res
+	return res, nil
+}
+
+func (b *BizmanduAPI) GetDividendHistory(ticker string) (*DividendHistory, error) {
+	url := b.buildTickerSlug(Dividend, ticker)
+	req, err := b.client.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := &DividendHistory{}
+	if _, err := b.client.Do(context.Background(), req, res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

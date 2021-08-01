@@ -20,6 +20,7 @@ func (server *Server) InitRoutes() {
 	server.setJSON("/api/v1/health", server.Health, "GET")
 	server.setJSON("/api/v1/pricehistory", server.GetPriceHistory, "GET")
 	server.setJSON("/api/v1/fundamental", server.GetFundamentalSectorwise, "GET")
+	server.setJSON("/api/v1/whatif", server.WhatIf, "POST")
 }
 
 func (server *Server) Run(addr string) {

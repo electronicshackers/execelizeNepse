@@ -14,7 +14,9 @@ const (
 	Summary         = "tearsheet/summary"
 	Financial       = "tearsheet/financial/keyStats"
 	BalanceSheet    = "tearsheet/financial/balanceSheet"
+	PriceHistory    = "tradingView/history"
 	IncomeStatement = "tearsheet/financial/incomeStatement"
+	Dividend        = "tearsheet/dividend/"
 )
 
 type BizmanduAPI struct {
@@ -39,3 +41,9 @@ func NewBizmandu() (*BizmanduAPI, error) {
 func (b *BizmanduAPI) buildTickerSlug(urlPath, ticker string) string {
 	return fmt.Sprintf("%s/?tkr=%s", urlPath, ticker)
 }
+
+func (b *BizmanduAPI) buildPriceHistorySlug(urlPath, ticker string, from, to int64) string {
+	return fmt.Sprintf("%s?symbol=%s&resolution=D&from=%d&to=%d", urlPath, ticker, from, to)
+}
+
+//https://bizmandu.com/__stock/tradingView/history?symbol=BPCL&resolution=D&from=1626880096&to=1627744096
