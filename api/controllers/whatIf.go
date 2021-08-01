@@ -69,10 +69,10 @@ func (server *Server) WhatIf(w http.ResponseWriter, r *http.Request) {
 
 	var yield DividendYield
 
-	if len(dividend.Message.Dividend) != 0 || len(dividend.Message.Rights) != 0 {
-		year := time.Unix(whatIf.BuyDate, 0).Year()
-		yield = calculateDividendYield(dividend, year, whatIf.Quantity)
-	}
+	year := time.Unix(whatIf.BuyDate, 0).Year()
+	yield = calculateDividendYield(dividend, year, whatIf.Quantity)
+
+	fmt.Println("yield", yield)
 
 	indexOfSellingTime := closest(prices.T, int(timeNow))
 	sellingPrice := prices.C[indexOfSellingTime]
