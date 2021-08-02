@@ -40,6 +40,7 @@ type KeyFinancialMetrics struct {
 	Roa               float64                    `json:"roa"`
 	Roe               float64                    `json:"roe"`
 	Mktcap            float64                    `json:"mktCap"`
+	Quarter           float64                    `json:"quarter"`
 	PaidUpCapital     float64                    `json:"paidUpCapital"`
 	Hydro             HydroKeyMetrics            `json:"hydro"`
 	Hotel             HotelKeyMetrics            `json:"hotel"`
@@ -209,6 +210,10 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 			key.LTP = price.Lasttradedprice
 			key.Mktcap = detail.Message.Summary.Mktcap
 			key.Pbv = utils.ToFixed(key.LTP/key.Bvps, 2)
+
+			if len(incomeStatement.Message.Data) != 0 {
+				key.Quarter = incomeStatement.Message.Data[0].Quarter
+			}
 
 			for _, quarter := range detail.Message.Keyfinancial.Data {
 				if quarter.Type == "CURRENT" {
@@ -381,6 +386,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["L1"] = "Distributable Profit"
 		headers["M1"] = "Dividend Capacity"
 		headers["N1"] = "Profit/Share"
+		headers["O1"] = "Quarter"
 	}
 
 	if sector == HydroPower {
@@ -391,6 +397,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["N1"] = "Investement"
 		headers["O1"] = "Reserves"
 		headers["P1"] = "Interest Income"
+		headers["Q1"] = "Quarter"
 	}
 
 	if sector == Hotels {
@@ -401,6 +408,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["N1"] = "Total Current Liabilities"
 		headers["O1"] = "Net Current Assets"
 		headers["P1"] = "Reserve & Surplus"
+		headers["Q1"] = "Quarter"
 	}
 
 	if sector == LifeInsurance {
@@ -411,6 +419,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["N1"] = "Total Investment"
 		headers["O1"] = "Total Revenue"
 		headers["P1"] = "Reserve"
+		headers["O1"] = "Quarter"
 	}
 
 	if sector == NonLifeInsurance {
@@ -422,6 +431,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["O1"] = "Total Revenue"
 		headers["P1"] = "Net Income"
 		headers["Q1"] = "Reserve"
+		headers["R1"] = "Quarter"
 	}
 
 	if sector == ManufacturingAndProcessing {
@@ -430,6 +440,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["L1"] = "Net Profit"
 		headers["M1"] = "Total Revenue"
 		headers["N1"] = "Total Equity"
+		headers["O1"] = "Quarter"
 	}
 
 	return headers
@@ -447,6 +458,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[utils.GetColumn("L", k)] = data.BFI.DistributableProfit
 		excelVal[utils.GetColumn("M", k)] = data.BFI.DividendCapacity
 		excelVal[utils.GetColumn("N", k)] = data.BFI.DistibutableProfitPerShare
+		excelVal[utils.GetColumn("O", k)] = data.Quarter
 	}
 
 	if sector == HydroPower {
@@ -457,6 +469,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hydro.Investements
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hydro.Reserves
 		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hydro.NetInterestIncome
+		excelVal[fmt.Sprintf("Q%d", k+2)] = data.Quarter
 	}
 	if sector == Hotels {
 		excelVal[fmt.Sprintf("J%d", k+2)] = data.Hotel.TotalIncome
@@ -466,6 +479,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.Hotel.TotalCurrentLiabilities
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.Hotel.NetCurrentAssests
 		excelVal[fmt.Sprintf("P%d", k+2)] = data.Hotel.ReserveAndSurplus
+		excelVal[fmt.Sprintf("Q%d", k+2)] = data.Quarter
 	}
 
 	if sector == LifeInsurance {
@@ -476,6 +490,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.LifeInsurance.TotalInvestment
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.LifeInsurance.TotalRevenue
 		excelVal[fmt.Sprintf("P%d", k+2)] = data.LifeInsurance.ReserveAndSurplus
+		excelVal[fmt.Sprintf("Q%d", k+2)] = data.Quarter
 	}
 
 	if sector == NonLifeInsurance {
@@ -487,6 +502,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("O%d", k+2)] = data.NonLifeInsurance.TotalRevenue
 		excelVal[fmt.Sprintf("P%d", k+2)] = data.NonLifeInsurance.NetIncome
 		excelVal[fmt.Sprintf("Q%d", k+2)] = data.NonLifeInsurance.ReserveAndSurplus
+		excelVal[fmt.Sprintf("R%d", k+2)] = data.Quarter
 	}
 
 	if sector == ManufacturingAndProcessing {
@@ -495,6 +511,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.Manufacturing.NetIncome
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.Manufacturing.TotalRevenue
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.Manufacturing.TotalEquityAndLiabilities
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.Quarter
 	}
 
 	if sector == Microcredit {
@@ -503,6 +520,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[fmt.Sprintf("L%d", k+2)] = data.Microcredit.NetIncome
 		excelVal[fmt.Sprintf("M%d", k+2)] = data.Microcredit.Reserves
 		excelVal[fmt.Sprintf("N%d", k+2)] = data.Microcredit.NetInterestIncomePerShare
+		excelVal[fmt.Sprintf("O%d", k+2)] = data.Quarter
 	}
 	return excelVal
 }
