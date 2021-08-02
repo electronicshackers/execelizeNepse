@@ -125,6 +125,49 @@ type DividendHistory struct {
 	} `json:"message"`
 }
 
+type MutualFundData struct {
+	Response int    `json:"response"`
+	Error    string `json:"error"`
+	Message  struct {
+		Summary struct {
+			Ticker               string  `json:"ticker"`
+			Open                 float64 `json:"open"`
+			Avgvolume            float64 `json:"avgVolume"`
+			Dayshigh             float64 `json:"daysHigh"`
+			Dayslow              float64 `json:"daysLow"`
+			Fiftytwoweekhigh     float64 `json:"fiftyTwoWeekHigh"`
+			Fiftytwoweeklow      float64 `json:"fiftyTwoWeekLow"`
+			Aum                  float64 `json:"aum"`
+			Weeklynav            float64 `json:"weeklyNav"`
+			Monthlynav           float64 `json:"monthlyNav"`
+			Pricevsnav           float64 `json:"priceVsNav"`
+			Fundbeta             float64 `json:"fundBeta"`
+			Totalsectorsinvested float64 `json:"totalSectorsInvested"`
+			Totalsharesheld      float64 `json:"totalSharesHeld"`
+			Totalcompaniesheld   float64 `json:"totalCompaniesHeld"`
+			Sector               []struct {
+				Label string  `json:"label"`
+				Value float64 `json:"value"`
+			} `json:"sector"`
+			Topstockholdings []struct {
+				Ticker     string  `json:"ticker"`
+				Portweight float64 `json:"portWeight"`
+				Qty        float64 `json:"qty"`
+			} `json:"topStockHoldings"`
+			Topstockbought []struct {
+				Ticker       string  `json:"ticker"`
+				Noofstocks   float64 `json:"noOfStocks"`
+				Totalholding float64 `json:"totalHolding"`
+			} `json:"topStockBought"`
+			Topstocksold []struct {
+				Ticker       string  `json:"ticker"`
+				Noofstocks   float64 `json:"noOfStocks"`
+				Totalholding float64 `json:"totalHolding"`
+			} `json:"topStockSold"`
+		} `json:"summary"`
+	} `json:"message"`
+}
+
 func (b *BizmanduAPI) GetCurrentPrice(ticker string) (*nepse.LastTradingDayStats, error) {
 	url := b.buildTickerSlug(Header, ticker)
 	req, err := b.client.NewRequest(http.MethodGet, url, nil)
@@ -193,6 +236,22 @@ func (b *BizmanduAPI) GetDividendHistory(ticker string) (*DividendHistory, error
 	}
 
 	res := &DividendHistory{}
+	if _, err := b.client.Do(context.Background(), req, res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (b *BizmanduAPI) GetMutualFundData(ticker string) (*MutualFundData, error) {
+	url := b.buildTickerSlug(MutualFund, ticker)
+	req, err := b.client.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := &MutualFundData{}
 	if _, err := b.client.Do(context.Background(), req, res); err != nil {
 		return nil, err
 	}

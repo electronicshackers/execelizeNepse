@@ -1,10 +1,11 @@
 package nepse
 
 type Ticker struct {
-	Ticker      string `json:"ticker"`
-	Id          string `json:"id"`
-	Companyname string `json:"companyName"`
-	Sector      string `json:"sector"`
+	Ticker          string  `json:"ticker"`
+	Id              string  `json:"id"`
+	Companyname     string  `json:"companyName"`
+	Sector          string  `json:"sector"`
+	Lasttradedprice float64 `json:"lastTradedPrice"`
 }
 
 type LastTradingDayStats struct {

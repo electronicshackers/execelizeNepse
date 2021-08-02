@@ -17,6 +17,7 @@ const (
 	PriceHistory    = "tradingView/history"
 	IncomeStatement = "tearsheet/financial/incomeStatement"
 	Dividend        = "tearsheet/dividend/"
+	MutualFund      = "tearsheet/summaryMf/"
 )
 
 type BizmanduAPI struct {

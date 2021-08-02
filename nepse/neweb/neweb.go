@@ -11,6 +11,7 @@ const (
 	Health       = "web/menu"
 	All          = "nots/securityDailyTradeStat/58"
 	PriceHistory = "nots/market/security/price"
+	MutualFund   = "nots/securityDailyTradeStat/66"
 )
 
 type NewebAPI struct {

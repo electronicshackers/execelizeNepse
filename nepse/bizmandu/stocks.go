@@ -29,9 +29,10 @@ func (b *BizmanduAPI) GetStocks() ([]nepse.Ticker, error) {
 
 	for _, ticker := range res.Message {
 		stocks = append(stocks, nepse.Ticker{
-			Ticker:      ticker.Ticker,
-			Companyname: ticker.Companyname,
-			Sector:      ticker.Sector,
+			Ticker:          ticker.Ticker,
+			Companyname:     ticker.Companyname,
+			Sector:          ticker.Sector,
+			Lasttradedprice: ticker.Lasttradedprice,
 		})
 	}
 
@@ -45,9 +46,10 @@ func (b *BizmanduAPI) GetSectorStock(sector string, newWeb, biz []nepse.Ticker) 
 		if ticker.Sector == sector {
 			if !strings.Contains(ticker.Companyname, "Promoter") {
 				stocks = append(stocks, nepse.Ticker{
-					Ticker:      ticker.Ticker,
-					Companyname: ticker.Companyname,
-					Sector:      ticker.Sector,
+					Ticker:          ticker.Ticker,
+					Companyname:     ticker.Companyname,
+					Sector:          ticker.Sector,
+					Lasttradedprice: ticker.Lasttradedprice,
 				})
 			}
 		}

@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"log"
+	"nepse-backend/nepse"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/nepse/neweb"
 	"nepse-backend/utils"
@@ -154,6 +155,19 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	stockMap := make(map[string][]nepse.Ticker)
+
+	for stockIndex := range nepseSectors {
+		nepseStocks := nepseSectors[stockIndex]
+		stockMap[nepseStocks.Ticker] = append(stockMap[nepseStocks.Ticker], nepse.Ticker{
+			Ticker:          nepseStocks.Ticker,
+			Id:              nepseStocks.Id,
+			Companyname:     nepseStocks.Companyname,
+			Sector:          nepseStocks.Sector,
+			Lasttradedprice: nepseStocks.Lasttradedprice,
+		})
+	}
+
 	bizSectors, err := biz.GetStocks()
 
 	if err != nil {
@@ -196,18 +210,11 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				return
 			}
 
-			price, err := biz.GetCurrentPrice(ticker.Ticker)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
 			key.Eps = utils.ToFixed(detail.Message.Summary.Epsdiluted, 2)
 			key.PE = utils.ToFixed(detail.Message.Summary.Pediluted, 2)
-			key.LTP = detail.Message.Summary.Open
+			key.LTP = stockMap[ticker.Ticker][0].Lasttradedprice
 			key.Bvps = utils.ToFixed(detail.Message.Summary.Bvps, 2)
 			key.Ticker = detail.Message.Keyfinancial.Ticker
-			key.LTP = price.Lasttradedprice
 			key.Mktcap = detail.Message.Summary.Mktcap
 			key.Pbv = utils.ToFixed(key.LTP/key.Bvps, 2)
 
