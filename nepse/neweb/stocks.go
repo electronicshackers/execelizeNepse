@@ -62,9 +62,10 @@ func (n *NewebAPI) GetMutualFundStock() ([]nepse.Ticker, error) {
 
 	for _, ticker := range *res {
 		stocks = append(stocks, nepse.Ticker{
-			Ticker:      ticker.Symbol,
-			Companyname: ticker.Securityname,
-			Id:          ticker.Securityid,
+			Ticker:          ticker.Symbol,
+			Companyname:     ticker.Securityname,
+			Id:              ticker.Securityid,
+			Lasttradedprice: ticker.Lasttradedprice,
 		})
 	}
 
