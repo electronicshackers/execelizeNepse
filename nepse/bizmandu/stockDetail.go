@@ -125,45 +125,47 @@ type DividendHistory struct {
 	} `json:"message"`
 }
 
+type Sector struct {
+	Label string  `json:"label"`
+	Value float64 `json:"value"`
+}
+
+type Topstockholdings struct {
+	Ticker     string  `json:"ticker"`
+	Portweight float64 `json:"portWeight"`
+	Qty        int64   `json:"qty"`
+}
+
+type Topstock struct {
+	Ticker       string  `json:"ticker"`
+	Noofstocks   int64   `json:"noOfStocks"`
+	Totalholding float64 `json:"totalHolding"`
+}
+
 type MutualFundData struct {
 	Response int    `json:"response"`
 	Error    string `json:"error"`
 	Message  struct {
 		Summary struct {
-			Ticker               string  `json:"ticker"`
-			Open                 float64 `json:"open"`
-			Avgvolume            float64 `json:"avgVolume"`
-			Dayshigh             float64 `json:"daysHigh"`
-			Dayslow              float64 `json:"daysLow"`
-			Fiftytwoweekhigh     float64 `json:"fiftyTwoWeekHigh"`
-			Fiftytwoweeklow      float64 `json:"fiftyTwoWeekLow"`
-			Aum                  float64 `json:"aum"`
-			Weeklynav            float64 `json:"weeklyNav"`
-			Monthlynav           float64 `json:"monthlyNav"`
-			Pricevsnav           float64 `json:"priceVsNav"`
-			Fundbeta             float64 `json:"fundBeta"`
-			Totalsectorsinvested float64 `json:"totalSectorsInvested"`
-			Totalsharesheld      float64 `json:"totalSharesHeld"`
-			Totalcompaniesheld   float64 `json:"totalCompaniesHeld"`
-			Sector               []struct {
-				Label string  `json:"label"`
-				Value float64 `json:"value"`
-			} `json:"sector"`
-			Topstockholdings []struct {
-				Ticker     string  `json:"ticker"`
-				Portweight float64 `json:"portWeight"`
-				Qty        float64 `json:"qty"`
-			} `json:"topStockHoldings"`
-			Topstockbought []struct {
-				Ticker       string  `json:"ticker"`
-				Noofstocks   float64 `json:"noOfStocks"`
-				Totalholding float64 `json:"totalHolding"`
-			} `json:"topStockBought"`
-			Topstocksold []struct {
-				Ticker       string  `json:"ticker"`
-				Noofstocks   float64 `json:"noOfStocks"`
-				Totalholding float64 `json:"totalHolding"`
-			} `json:"topStockSold"`
+			Ticker               string             `json:"ticker"`
+			Open                 float64            `json:"open"`
+			Avgvolume            float64            `json:"avgVolume"`
+			Dayshigh             float64            `json:"daysHigh"`
+			Dayslow              float64            `json:"daysLow"`
+			Fiftytwoweekhigh     float64            `json:"fiftyTwoWeekHigh"`
+			Fiftytwoweeklow      float64            `json:"fiftyTwoWeekLow"`
+			Aum                  float64            `json:"aum"`
+			Weeklynav            float64            `json:"weeklyNav"`
+			Monthlynav           float64            `json:"monthlyNav"`
+			Pricevsnav           float64            `json:"priceVsNav"`
+			Fundbeta             float64            `json:"fundBeta"`
+			Totalsectorsinvested float64            `json:"totalSectorsInvested"`
+			Totalsharesheld      float64            `json:"totalSharesHeld"`
+			Totalcompaniesheld   float64            `json:"totalCompaniesHeld"`
+			Sector               []Sector           `json:"sector"`
+			Topstockholdings     []Topstockholdings `json:"topStockHoldings"`
+			Topstockbought       []Topstock         `json:"topStockBought"`
+			Topstocksold         []Topstock         `json:"topStockSold"`
 		} `json:"summary"`
 	} `json:"message"`
 }
