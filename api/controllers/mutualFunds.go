@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-var options = []string{"whole", "sector", "topHolding", "topSold", "topBought"}
+var options = []string{"whole", "sector", "topHolding", "topSold", "topBought", "netBought"}
 
 type MutualFund struct {
 	MutualFundKeyMetrics []MutualFundKeyMetrics `json:"mutualFundKeyMetrics"`
@@ -17,6 +17,7 @@ type MutualFund struct {
 	TopHoldingMap        map[string]int64       `json:"topHoldingMap"`
 	TopstockboughtMap    map[string]int64       `json:"topStockBoughtMap"`
 	TopstocksoldMap      map[string]int64       `json:"topStockSoldMap"`
+	NetstockboughtMap    map[string]int64       `json:"netStockBoughtMap"`
 }
 
 type MutualFundKeyMetrics struct {
@@ -84,6 +85,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 	mfsInfo.TopHoldingMap = make(map[string]int64)
 	mfsInfo.TopstockboughtMap = make(map[string]int64)
 	mfsInfo.TopstocksoldMap = make(map[string]int64)
+	mfsInfo.NetstockboughtMap = make(map[string]int64)
 
 	for _, mf := range mfsInfo.MutualFundKeyMetrics {
 		for _, sector := range mf.Sector {
@@ -103,6 +105,10 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 
 	for label, value := range mfsInfo.SectorMap {
 		mfsInfo.SectorMap[label] = utils.ToFixed(value/float64(len(mfsInfo.MutualFundKeyMetrics)), 2) * 100
+	}
+
+	for k, _ := range mfsInfo.TopstockboughtMap {
+		mfsInfo.NetstockboughtMap[k] = mfsInfo.TopstockboughtMap[k] - mfsInfo.TopstocksoldMap[k]
 	}
 
 	folderName := "mutualFund"
@@ -156,6 +162,15 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		if option == "topSold" {
 			var count = 0
 			for k, v := range mfsInfo.TopstocksoldMap {
+				excelVal := GetAggregatedMutualFundValues(k, v, count)
+				excelVals = append(excelVals, excelVal)
+				count++
+			}
+		}
+
+		if option == "netBought" {
+			var count = 0
+			for k, v := range mfsInfo.NetstockboughtMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
 				excelVals = append(excelVals, excelVal)
 				count++
