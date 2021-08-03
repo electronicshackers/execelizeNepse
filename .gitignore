@@ -7,3 +7,6 @@ __*
 *.prof
 *.xlsx
 */*.xlsx
+mutualFund/
+*.txt
+*.json

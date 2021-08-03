@@ -116,59 +116,37 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		os.Mkdir(folderName, 0777)
 	}
 
-	for _, option := range options {
-		categories := GetMutualFundHeaders(option)
+	categories := GetMutualFundHeaders()
 
-		var excelVals []map[string]interface{}
+	var excelVals []map[string]interface{}
 
-		for k, v := range mfsInfo {
-			excelVal := GetMutualFundValues(option, v, k)
-			if v.Ticker != "" {
-				excelVals = append(excelVals, excelVal)
-			}
+	for k, v := range mfsInfo {
+		excelVal := GetMutualFundValues(v, k)
+		if v.Ticker != "" {
+			excelVals = append(excelVals, excelVal)
 		}
-
-		go utils.CreateExcelFile(folderName, option, categories, excelVals)
 	}
+
+	go utils.CreateExcelFile(folderName, "whole", categories, excelVals)
 
 	responses.JSON(w, http.StatusOK, mfsInfo)
 }
 
-func GetMutualFundHeaders(option string) map[string]string {
-	var headers = make(map[string]string)
-	if option == "whole" {
-		headers = map[string]string{
-			"A1": "Ticker", "B1": "LastTradedPrice", "C1": "WeeklyNav",
-			"D1": "MonthlyNav", "E1": "PriceVsNav", "F1": "AUM",
-			"G1": "TotalSector", "H1": "TotalCompanies",
-		}
-	}
-	if option == "sector" {
-		headers = map[string]string{
-			"A1": "Sector", "B1": "Percentage",
-		}
-	}
-	if option == "topstock" {
-		headers = map[string]string{
-			"A1": "Ticker", "B1": "Qty",
-		}
+func GetMutualFundHeaders() map[string]string {
+	headers := map[string]string{
+		"A1": "Ticker", "B1": "LastTradedPrice", "C1": "WeeklyNav",
+		"D1": "MonthlyNav", "E1": "PriceVsNav", "F1": "AUM",
+		"G1": "TotalSector", "H1": "TotalCompanies",
 	}
 	return headers
 }
 
-func GetMutualFundValues(option string, data MutualFundKeyMetrics, k int) map[string]interface{} {
-	var excelVals = make(map[string]interface{})
-	if option == "whole" {
-		excelVals = map[string]interface{}{
-			utils.GetColumn("A", k): data.Ticker, utils.GetColumn("B", k): data.LastTradedPrice, utils.GetColumn("C", k): data.WeeklyNav,
-			utils.GetColumn("D", k): data.MonthlyNav, utils.GetColumn("E", k): (data.LastTradedPrice - data.WeeklyNav), utils.GetColumn("F", k): data.MarketCapatilization,
-			utils.GetColumn("G", k): data.TotalSector, utils.GetColumn("H", k): data.TotalCompanies,
-		}
+func GetMutualFundValues(data MutualFundKeyMetrics, k int) map[string]interface{} {
+	excelVals := map[string]interface{}{
+		utils.GetColumn("A", k): data.Ticker, utils.GetColumn("B", k): data.LastTradedPrice, utils.GetColumn("C", k): data.WeeklyNav,
+		utils.GetColumn("D", k): data.MonthlyNav, utils.GetColumn("E", k): (data.LastTradedPrice - data.WeeklyNav), utils.GetColumn("F", k): data.MarketCapatilization,
+		utils.GetColumn("G", k): data.TotalSector, utils.GetColumn("H", k): data.TotalCompanies,
 	}
-	if option == "sector" {
-		excelVals = map[string]interface{}{
-			utils.GetColumn("A", k): data.Sector, utils.GetColumn("B", k): data.MarketCapatilization,
-		}
-	}
+
 	return excelVals
 }
