@@ -11,6 +11,14 @@ import (
 
 var options = []string{"whole", "sector", "topHolding", "topSold", "topBought"}
 
+type MutualFund struct {
+	MutualFundKeyMetrics []MutualFundKeyMetrics `json:"mutualFundKeyMetrics"`
+	SectorMap            map[string]float64     `json:"sectorMap"`
+	TopHoldingMap        map[string]int64       `json:"topHoldingMap"`
+	TopstockboughtMap    map[string]int64       `json:"topStockBoughtMap"`
+	TopstocksoldMap      map[string]int64       `json:"topStockSoldMap"`
+}
+
 type MutualFundKeyMetrics struct {
 	Ticker               string                      `json:"ticker"`
 	WeeklyNav            float64                     `json:"weeklyNav"`
@@ -24,13 +32,6 @@ type MutualFundKeyMetrics struct {
 	Topstockholdings     []bizmandu.Topstockholdings `json:"topStockHoldings"`
 	Topstockbought       []bizmandu.Topstock         `json:"topStockBought"`
 	Topstocksold         []bizmandu.Topstock         `json:"topStockSold"`
-}
-
-type AggregatedMutualFundMetrics struct {
-	SectorMap         map[string]float64 `json:"sectorMap"`
-	TopHoldingMap     map[string]int64   `json:"topHoldingMap"`
-	TopstockboughtMap map[string]int64   `json:"topStockBoughtMap"`
-	TopstocksoldMap   map[string]int64   `json:"topStockSoldMap"`
 }
 
 func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +56,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var mfsInfo []MutualFundKeyMetrics
+	var mfsInfo MutualFund
 
 	for _, mf := range mfs {
 		mutualFundData, err := biz.GetMutualFundData(mf.Ticker)
@@ -63,7 +64,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		mfsInfo = append(mfsInfo, MutualFundKeyMetrics{
+		mfsInfo.MutualFundKeyMetrics = append(mfsInfo.MutualFundKeyMetrics, MutualFundKeyMetrics{
 			Ticker:               mf.Ticker,
 			WeeklyNav:            mutualFundData.Message.Summary.Weeklynav,
 			MonthlyNav:           mutualFundData.Message.Summary.Monthlynav,
@@ -79,37 +80,30 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	var aggregatedMetrics AggregatedMutualFundMetrics
+	mfsInfo.SectorMap = make(map[string]float64)
+	mfsInfo.TopHoldingMap = make(map[string]int64)
+	mfsInfo.TopstockboughtMap = make(map[string]int64)
+	mfsInfo.TopstocksoldMap = make(map[string]int64)
 
-	var sectorMap = make(map[string]float64)
-	var topHoldingMap = make(map[string]int64)
-	var topBoughtMap = make(map[string]int64)
-	var topSoldMap = make(map[string]int64)
-
-	for _, mf := range mfsInfo {
+	for _, mf := range mfsInfo.MutualFundKeyMetrics {
 		for _, sector := range mf.Sector {
-			sectorMap[sector.Label] += sector.Value
+			mfsInfo.SectorMap[sector.Label] += sector.Value
 		}
 
 		for _, topHolding := range mf.Topstockholdings {
-			topHoldingMap[topHolding.Ticker] += topHolding.Qty
+			mfsInfo.TopHoldingMap[topHolding.Ticker] += topHolding.Qty
 		}
 		for _, topBought := range mf.Topstockbought {
-			topBoughtMap[topBought.Ticker] += topBought.Noofstocks
+			mfsInfo.TopstockboughtMap[topBought.Ticker] += topBought.Noofstocks
 		}
 		for _, topSold := range mf.Topstocksold {
-			topSoldMap[topSold.Ticker] += topSold.Noofstocks
+			mfsInfo.TopstocksoldMap[topSold.Ticker] += topSold.Noofstocks
 		}
 	}
 
-	for label, value := range sectorMap {
-		sectorMap[label] = utils.ToFixed(value/float64(len(mfsInfo)), 2) * 100
+	for label, value := range mfsInfo.SectorMap {
+		mfsInfo.SectorMap[label] = utils.ToFixed(value/float64(len(mfsInfo.MutualFundKeyMetrics)), 2) * 100
 	}
-
-	aggregatedMetrics.SectorMap = sectorMap
-	aggregatedMetrics.TopHoldingMap = topHoldingMap
-	aggregatedMetrics.TopstockboughtMap = topBoughtMap
-	aggregatedMetrics.TopstocksoldMap = topSoldMap
 
 	folderName := "mutualFund"
 	if _, err := os.Stat(folderName); os.IsNotExist(err) {
@@ -120,7 +114,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 
 	var excelVals []map[string]interface{}
 
-	for k, v := range mfsInfo {
+	for k, v := range mfsInfo.MutualFundKeyMetrics {
 		excelVal := GetMutualFundValues(v, k)
 		if v.Ticker != "" {
 			excelVals = append(excelVals, excelVal)
@@ -129,7 +123,77 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 
 	go utils.CreateExcelFile(folderName, "whole", categories, excelVals)
 
+	for _, option := range options {
+		aggregatedHeaders := GetAggregatedMutualFundHeaders(option)
+
+		var excelVals []map[string]interface{}
+
+		if option == "sector" {
+			var count = 0
+			for k, v := range mfsInfo.SectorMap {
+				excelVal := GetAggregatedMutualFundValues(k, v, count)
+				excelVals = append(excelVals, excelVal)
+				count++
+			}
+		}
+
+		if option == "topHolding" {
+			var count = 0
+			for k, v := range mfsInfo.TopHoldingMap {
+				excelVal := GetAggregatedMutualFundValues(k, v, count)
+				excelVals = append(excelVals, excelVal)
+				count++
+			}
+		}
+		if option == "topBought" {
+			var count = 0
+			for k, v := range mfsInfo.TopstockboughtMap {
+				excelVal := GetAggregatedMutualFundValues(k, v, count)
+				excelVals = append(excelVals, excelVal)
+				count++
+			}
+		}
+		if option == "topSold" {
+			var count = 0
+			for k, v := range mfsInfo.TopstocksoldMap {
+				excelVal := GetAggregatedMutualFundValues(k, v, count)
+				excelVals = append(excelVals, excelVal)
+				count++
+			}
+		}
+
+		go utils.CreateExcelFile(folderName, option, aggregatedHeaders, excelVals)
+
+	}
+
 	responses.JSON(w, http.StatusOK, mfsInfo)
+}
+
+func GetAggregatedMutualFundValues(key string, value interface{}, k int) map[string]interface{} {
+	excelVals := map[string]interface{}{
+		utils.GetColumn("A", k): key, utils.GetColumn("B", k): value,
+	}
+
+	return excelVals
+}
+
+func GetAggregatedMutualFundHeaders(option string) map[string]string {
+	var headers = make(map[string]string)
+
+	if option == "sector" {
+		headers = map[string]string{
+			"A1": "Sector",
+			"B1": "Distribution",
+		}
+	} else {
+		headers = map[string]string{
+			"A1": "Ticker",
+			"B1": "TotalStock",
+		}
+	}
+
+	return headers
+
 }
 
 func GetMutualFundHeaders() map[string]string {
