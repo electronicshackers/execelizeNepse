@@ -7,6 +7,11 @@ import (
 	"nepse-backend/utils"
 	"net/http"
 	"os"
+	"sort"
+
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/components"
+	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
 var options = []string{"whole", "sector", "topHolding", "topSold", "topBought", "netBought"}
@@ -182,6 +187,61 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	responses.JSON(w, http.StatusOK, mfsInfo)
+
+	BarGraph(mfsInfo)
+}
+
+type kv struct {
+	Key   string
+	Value int64
+}
+
+func SortMap(m map[string]int64) []kv {
+
+	var ss []kv
+	for k, v := range m {
+		ss = append(ss, kv{k, v})
+	}
+
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].Value > ss[j].Value
+	})
+	return ss[0:12]
+}
+
+func generateBarItems(data []kv) []opts.BarData {
+	items := make([]opts.BarData, 0)
+
+	for _, v := range data {
+		items = append(items, opts.BarData{Value: v.Value})
+	}
+	return items
+}
+
+func BarGraph(mutualFundData MutualFund) {
+	page := components.NewPage()
+	bar := charts.NewBar()
+	// set some global options like Title/Legend/ToolTip or anything else
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title: "Top Holding of Mutual Fund (One Month Report)",
+	}))
+
+	topSorted := SortMap(mutualFundData.TopHoldingMap)
+
+	var keys = make([]string, 0)
+
+	for _, v := range topSorted {
+		keys = append(keys, v.Key)
+	}
+
+	// Put data into instance
+	bar.SetXAxis(keys).
+		AddSeries("Category A", generateBarItems(topSorted))
+	// Where the magic happens
+
+	page.AddCharts(bar)
+	f, _ := os.Create("bar.html")
+	page.Render(f)
 }
 
 func GetAggregatedMutualFundValues(key string, value interface{}, k int) map[string]interface{} {
