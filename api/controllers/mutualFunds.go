@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	responses "nepse-backend/api/response"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/nepse/neweb"
@@ -17,8 +18,10 @@ import (
 var (
 	options     = []string{"whole", "sector", "topHolding", "topSold", "topBought", "netBought"}
 	MutualFunds = []string{"CMF1", "CMF2", "GIMES1", "KEF", "LEMF", "LUK", "NBF2", "NEF", "NIBLPF", "NIBSF1",
-		"NICBF", "NICGF", "NMB50", "NMBHF1", "PSF", "SAEF", "SBCF", "SEF", "SFMF", "SIGS2", "SLCF"}
+		"NICBF", "NICGF", "NMB50", "NMBHF1", "PSF", "SAEF", "SBCF", "SEF", "SFMF", "SIGS2", "SLCF", "NIBSF2", "NIBLSF"}
 )
+
+var test = make(map[string]string)
 
 type kv struct {
 	Key   string
@@ -69,6 +72,10 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	for _, v := range MutualFunds {
+		test[v] = v
 	}
 
 	var mfsInfo MutualFund
@@ -162,7 +169,8 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		if option == "topHolding" {
-			allCharts = append(allCharts, BarGraph(mfsInfo.TopHoldingMap, "Total Number of Holdings in Mutual Fund's Portfolio"))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopHoldingMap, "Total Number of Holdings in Mutual Fund's Portfolio", true))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopHoldingMap, "Total Number of Holdings in Mutual Fund's Portfolio (Mutual Fund Excluded)", false))
 			var count = 0
 			for k, v := range mfsInfo.TopHoldingMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -171,7 +179,8 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 			}
 		}
 		if option == "topBought" {
-			allCharts = append(allCharts, BarGraph(mfsInfo.TopstockboughtMap, "Top Stock Bought within One Month"))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstockboughtMap, "Top Stock Bought within One Month", true))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstockboughtMap, "Top Stock Bought within One Month (Mutual Fund Excluded)", false))
 			var count = 0
 			for k, v := range mfsInfo.TopstockboughtMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -180,7 +189,8 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 			}
 		}
 		if option == "topSold" {
-			allCharts = append(allCharts, BarGraph(mfsInfo.TopstocksoldMap, "Top Stock Sold within One Month"))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstocksoldMap, "Top Stock Sold within One Month", true))
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstocksoldMap, "Top Stock Sold within One Month (Mutual Fund Excluded)", false))
 			var count = 0
 			for k, v := range mfsInfo.TopstocksoldMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -190,7 +200,8 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		if option == "netBought" {
-			allCharts = append(allCharts, BarGraph(mfsInfo.NetstockboughtMap, "Net Stock Bought Of Mutual Fund For One Month"))
+			allCharts = append(allCharts, BarGraph(mfsInfo.NetstockboughtMap, "Net Stock Bought Of Mutual Fund For One Month", true))
+			allCharts = append(allCharts, BarGraph(mfsInfo.NetstockboughtMap, "Net Stock Bought Of Mutual Fund For One Month (Mutual Fund Excluded)", false))
 			var count = 0
 			for k, v := range mfsInfo.NetstockboughtMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -202,16 +213,22 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		go utils.CreateExcelFile(folderName, option, aggregatedHeaders, excelVals)
 	}
 
-	go CreateHTML(allCharts, pie)
+	go CreateHTML(allCharts, pie, fmt.Sprintf("%s/%s", folderName, "mutual"))
 
 	responses.JSON(w, http.StatusOK, mfsInfo)
 }
 
-func SortMap(m map[string]int64) []kv {
+func SortMap(m map[string]int64, include bool) []kv {
 
 	var ss []kv
 	for k, v := range m {
-		ss = append(ss, kv{k, v})
+		if !include {
+			if test[k] != k {
+				ss = append(ss, kv{k, v})
+			}
+		} else {
+			ss = append(ss, kv{k, v})
+		}
 	}
 
 	sort.Slice(ss, func(i, j int) bool {
@@ -253,14 +270,14 @@ func PieChart(aggregateDate map[string]float64, title string) *charts.Pie {
 	return pie
 }
 
-func BarGraph(aggregatedData map[string]int64, title string) *charts.Bar {
+func BarGraph(aggregatedData map[string]int64, title string, includeMutualFund bool) *charts.Bar {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
 		Title: title,
 	}))
 
-	topSorted := SortMap(aggregatedData)
+	topSorted := SortMap(aggregatedData, includeMutualFund)
 
 	var keys = make([]string, 0)
 
@@ -275,7 +292,7 @@ func BarGraph(aggregatedData map[string]int64, title string) *charts.Bar {
 	return bar
 }
 
-func CreateHTML(barCharts []*charts.Bar, pieChart *charts.Pie) {
+func CreateHTML(barCharts []*charts.Bar, pieChart *charts.Pie, fileName string) {
 	page := components.NewPage()
 
 	page.AddCharts(pieChart)
@@ -283,7 +300,7 @@ func CreateHTML(barCharts []*charts.Bar, pieChart *charts.Pie) {
 	for _, v := range barCharts {
 		page.AddCharts(v)
 	}
-	f, _ := os.Create("index.html")
+	f, _ := os.Create(fmt.Sprintf("%s.html", fileName))
 	page.Render(f)
 }
 
