@@ -16,6 +16,11 @@ import (
 
 var options = []string{"whole", "sector", "topHolding", "topSold", "topBought", "netBought"}
 
+type kv struct {
+	Key   string
+	Value int64
+}
+
 type MutualFund struct {
 	MutualFundKeyMetrics []MutualFundKeyMetrics `json:"mutualFundKeyMetrics"`
 	SectorMap            map[string]float64     `json:"sectorMap"`
@@ -134,6 +139,8 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 
 	go utils.CreateExcelFile(folderName, "whole", categories, excelVals)
 
+	var allCharts []*charts.Bar
+
 	for _, option := range options {
 		aggregatedHeaders := GetAggregatedMutualFundHeaders(option)
 
@@ -149,6 +156,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		if option == "topHolding" {
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopHoldingMap, "Top Holding Of Mutual Fund For One Month", option))
 			var count = 0
 			for k, v := range mfsInfo.TopHoldingMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -157,6 +165,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 			}
 		}
 		if option == "topBought" {
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstockboughtMap, "Top Stock Bought Of Mutual Fund For One Month", option))
 			var count = 0
 			for k, v := range mfsInfo.TopstockboughtMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -165,6 +174,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 			}
 		}
 		if option == "topSold" {
+			allCharts = append(allCharts, BarGraph(mfsInfo.TopstocksoldMap, "Top Stock Sold Of Mutual Fund For One Month", option))
 			var count = 0
 			for k, v := range mfsInfo.TopstocksoldMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -174,6 +184,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		if option == "netBought" {
+			allCharts = append(allCharts, BarGraph(mfsInfo.NetstockboughtMap, "Net Stock Bought Of Mutual Fund For One Month", option))
 			var count = 0
 			for k, v := range mfsInfo.NetstockboughtMap {
 				excelVal := GetAggregatedMutualFundValues(k, v, count)
@@ -183,17 +194,11 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		go utils.CreateExcelFile(folderName, option, aggregatedHeaders, excelVals)
-
 	}
 
+	go CreateHTML(allCharts)
+
 	responses.JSON(w, http.StatusOK, mfsInfo)
-
-	BarGraph(mfsInfo)
-}
-
-type kv struct {
-	Key   string
-	Value int64
 }
 
 func SortMap(m map[string]int64) []kv {
@@ -206,7 +211,7 @@ func SortMap(m map[string]int64) []kv {
 	sort.Slice(ss, func(i, j int) bool {
 		return ss[i].Value > ss[j].Value
 	})
-	return ss[0:12]
+	return ss[0:10]
 }
 
 func generateBarItems(data []kv) []opts.BarData {
@@ -218,15 +223,16 @@ func generateBarItems(data []kv) []opts.BarData {
 	return items
 }
 
-func BarGraph(mutualFundData MutualFund) {
-	page := components.NewPage()
+func BarGraph(aggregatedData map[string]int64, title, filename string) *charts.Bar {
+	// page := components.NewPage()
+
 	bar := charts.NewBar()
 	// set some global options like Title/Legend/ToolTip or anything else
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title: "Top Holding of Mutual Fund (One Month Report)",
+		Title: title,
 	}))
 
-	topSorted := SortMap(mutualFundData.TopHoldingMap)
+	topSorted := SortMap(aggregatedData)
 
 	var keys = make([]string, 0)
 
@@ -237,10 +243,21 @@ func BarGraph(mutualFundData MutualFund) {
 	// Put data into instance
 	bar.SetXAxis(keys).
 		AddSeries("Category A", generateBarItems(topSorted))
-	// Where the magic happens
 
-	page.AddCharts(bar)
-	f, _ := os.Create("bar.html")
+	return bar
+
+	// page.AddCharts(bar)
+	// f, _ := os.Create(fmt.Sprintf("%s.html", filename))
+	// page.Render(f)
+}
+
+func CreateHTML(barCharts []*charts.Bar) {
+	page := components.NewPage()
+
+	for _, v := range barCharts {
+		page.AddCharts(v)
+	}
+	f, _ := os.Create("index.html")
 	page.Render(f)
 }
 
