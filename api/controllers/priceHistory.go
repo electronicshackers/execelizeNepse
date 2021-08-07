@@ -176,20 +176,20 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 		}
 
 		categories := map[string]string{
-			"A1": "Company Name", "B1": "Ticker",
-			"C1": "Start", "D1": "End", "E1": "Point Change", "F1": "Percentage Change",
-			"G1": "Maximum Price", "H1": "Minimum Price", "I1": "Max-Min", "J1": "%Change(Extreme)",
-			"K1": "Maximum Average", "L1": "Minimum Average", "M1": "Max-Min(avg)", "N1": "%Change(Avg)",
+			"A1": "Ticker",
+			"B1": start, "C1": end, "D1": "Pt. Change", "E1": "% Change",
+			"F1": "Max", "G1": "Min", "H1": "Max-Min", "I1": "%(Max-Min)",
+			"J1": "Max. Avg", "K1": "Min. Avg", "L1": "Max-Min(avg)", "M1": "%Change(Avg)",
 		}
 
 		var excelVals []map[string]interface{}
 
 		for k, v := range resu {
 			excelVal := map[string]interface{}{
-				utils.GetColumn("A", k): v.CompanyName, utils.GetColumn("B", k): v.Ticker,
-				utils.GetColumn("C", k): v.StartPrice, utils.GetColumn("D", k): v.EndPrice, utils.GetColumn("E", k): v.PointChange, utils.GetColumn("F", k): v.PercentageChange,
-				utils.GetColumn("G", k): v.MaxPrice, utils.GetColumn("H", k): v.MinPrice, utils.GetColumn("I", k): v.ExtremePointChange, utils.GetColumn("J", k): v.ExtremePercentageChange,
-				utils.GetColumn("K", k): v.MaxAveragePrice, utils.GetColumn("L", k): v.MinAveragePrice, utils.GetColumn("M", k): v.AveragePointChange, utils.GetColumn("N", k): v.AveragePercentageChange,
+				utils.GetColumn("A", k): v.Ticker,
+				utils.GetColumn("B", k): v.StartPrice, utils.GetColumn("C", k): v.EndPrice, utils.GetColumn("D", k): v.PointChange, utils.GetColumn("E", k): v.PercentageChange,
+				utils.GetColumn("F", k): v.MaxPrice, utils.GetColumn("G", k): v.MinPrice, utils.GetColumn("H", k): v.ExtremePointChange, utils.GetColumn("I", k): v.ExtremePercentageChange,
+				utils.GetColumn("J", k): v.MaxAveragePrice, utils.GetColumn("K", k): v.MinAveragePrice, utils.GetColumn("L", k): v.AveragePointChange, utils.GetColumn("M", k): v.AveragePercentageChange,
 			}
 			if v.Ticker != "" {
 				excelVals = append(excelVals, excelVal)

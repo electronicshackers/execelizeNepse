@@ -138,11 +138,11 @@ type PriceHistory struct {
 type NepseInterface interface {
 	GetStocks() ([]Ticker, error)
 	GetSectors()
-	GetCurrentPrice(ticker string) (LastTradingDayStats, error)
+	GetCurrentPrice(ticker string) (*LastTradingDayStats, error)
 	GetIncomeStatement(ticker string)
 	GetBalanceSheets(ticker string)
 	GetFinancialDetails(ticker string)
 	GetStockDetails(ticker string)
 	GetSummary(ticker string)
-	GetPriceHistory(ticker string) (PriceHistory, error)
+	GetPriceHistory(ticker string) ([]PriceHistoryMinified, error)
 }

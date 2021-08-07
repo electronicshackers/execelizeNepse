@@ -67,3 +67,15 @@ func (n *NewebAPI) GetPriceHistory(ticker string) ([]nepse.PriceHistoryMinified,
 
 	return prices, nil
 }
+
+func (n *NewebAPI) GetBalanceSheets(ticker string) {}
+
+func (n *NewebAPI) GetFinancialDetails(ticker string) {}
+
+func (n *NewebAPI) GetIncomeStatement(ticker string) {}
+
+func (n *NewebAPI) GetSectors() {}
+
+func (n *NewebAPI) GetStockDetails(ticker string) {}
+
+func (n *NewebAPI) GetSummary(ticker string) {}

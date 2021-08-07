@@ -142,7 +142,9 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	nepseBeta, err := neweb.Neweb()
+	var nepseBeta nepse.NepseInterface
+
+	nepseBeta, err = neweb.Neweb()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -385,6 +387,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["L1"] = "NetIncome"
 		headers["M1"] = "Reserves"
 		headers["N1"] = "NetInterestIncomePerShare"
+		headers["O1"] = "Quarter"
 	}
 
 	if sector == CommercialBanks || sector == DevelopmentBank || sector == Finance {
@@ -426,7 +429,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["N1"] = "Total Investment"
 		headers["O1"] = "Total Revenue"
 		headers["P1"] = "Reserve"
-		headers["O1"] = "Quarter"
+		headers["Q1"] = "Quarter"
 	}
 
 	if sector == NonLifeInsurance {
