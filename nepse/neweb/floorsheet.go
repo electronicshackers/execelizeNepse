@@ -13,7 +13,6 @@ type test struct {
 
 func (n *NewebAPI) GetFloorsheet(stockId, businessDate, randomId string, size int) (*nepse.FloorsheetResponse, error) {
 	url := n.buildFloorsheetSlug(stockId, businessDate, size)
-	fmt.Println("url", url)
 
 	ok := test{Id: randomId}
 
@@ -25,6 +24,7 @@ func (n *NewebAPI) GetFloorsheet(stockId, businessDate, randomId string, size in
 	res := &nepse.FloorsheetResponse{}
 
 	if _, err := n.client.Do(context.Background(), req, res); err != nil {
+		fmt.Println("fucking error", err)
 		return nil, err
 	}
 	return res, nil
