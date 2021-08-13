@@ -135,6 +135,57 @@ type PriceHistory struct {
 	Empty bool `json:"empty"`
 }
 
+type FloorsheetResponse struct {
+	Totalamount float64 `json:"totalAmount"`
+	Totalqty    float64 `json:"totalQty"`
+	Floorsheets struct {
+		Content []struct {
+			ID               interface{} `json:"id"`
+			Contractid       int64       `json:"contractId"`
+			Contracttype     interface{} `json:"contractType"`
+			Stocksymbol      string      `json:"stockSymbol"`
+			Buyermemberid    string      `json:"buyerMemberId"`
+			Sellermemberid   string      `json:"sellerMemberId"`
+			Contractquantity int         `json:"contractQuantity"`
+			Contractrate     float64     `json:"contractRate"`
+			Contractamount   float64     `json:"contractAmount"`
+			Businessdate     string      `json:"businessDate"`
+			Tradebookid      int         `json:"tradeBookId"`
+			Stockid          int         `json:"stockId"`
+			Buyerbrokername  string      `json:"buyerBrokerName"`
+			Sellerbrokername string      `json:"sellerBrokerName"`
+			Tradetime        string      `json:"tradeTime"`
+			Securityname     string      `json:"securityName"`
+		} `json:"content"`
+		Pageable struct {
+			Sort struct {
+				Sorted   bool `json:"sorted"`
+				Unsorted bool `json:"unsorted"`
+				Empty    bool `json:"empty"`
+			} `json:"sort"`
+			Pagesize   int  `json:"pageSize"`
+			Pagenumber int  `json:"pageNumber"`
+			Offset     int  `json:"offset"`
+			Paged      bool `json:"paged"`
+			Unpaged    bool `json:"unpaged"`
+		} `json:"pageable"`
+		Totalpages       int  `json:"totalPages"`
+		Totalelements    int  `json:"totalElements"`
+		Last             bool `json:"last"`
+		Number           int  `json:"number"`
+		Size             int  `json:"size"`
+		Numberofelements int  `json:"numberOfElements"`
+		Sort             struct {
+			Sorted   bool `json:"sorted"`
+			Unsorted bool `json:"unsorted"`
+			Empty    bool `json:"empty"`
+		} `json:"sort"`
+		First bool `json:"first"`
+		Empty bool `json:"empty"`
+	} `json:"floorsheets"`
+	Totaltrades int `json:"totalTrades"`
+}
+
 type NepseInterface interface {
 	GetStocks() ([]Ticker, error)
 	GetSectors()
@@ -145,4 +196,5 @@ type NepseInterface interface {
 	GetStockDetails(ticker string)
 	GetSummary(ticker string)
 	GetPriceHistory(ticker string) ([]PriceHistoryMinified, error)
+	GetFloorsheet(stockId, businessDate, randomId string, size int) (*FloorsheetResponse, error)
 }

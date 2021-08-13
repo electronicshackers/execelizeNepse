@@ -338,6 +338,7 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 
 				if len(financial.Message.Data) != 0 {
 					key.BFI.NPL = utils.ToFixed(financial.Message.Data[0].Nonperformingloannpltototalloan*100, 2)
+					key.PaidUpCapital = utils.ToFixed(financial.Message.Data[0].Outstandingshares, 2)
 				}
 
 				if len(balancesheet.Message.Data) != 0 && len(incomeStatement.Message.Data) != 0 {
@@ -397,6 +398,7 @@ func GetHeaders(sector string) map[string]string {
 		headers["M1"] = "Dividend Capacity"
 		headers["N1"] = "Profit/Share"
 		headers["O1"] = "Quarter"
+		headers["P1"] = "Outstanding Shares"
 	}
 
 	if sector == HydroPower {
@@ -469,6 +471,7 @@ func GetValues(sector string, data KeyFinancialMetrics, k int) map[string]interf
 		excelVal[utils.GetColumn("M", k)] = data.BFI.DividendCapacity
 		excelVal[utils.GetColumn("N", k)] = data.BFI.DistibutableProfitPerShare
 		excelVal[utils.GetColumn("O", k)] = data.Quarter
+		excelVal[utils.GetColumn("P", k)] = data.PaidUpCapital
 	}
 
 	if sector == HydroPower {

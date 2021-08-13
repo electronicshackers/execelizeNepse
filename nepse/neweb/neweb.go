@@ -12,6 +12,7 @@ const (
 	All          = "nots/securityDailyTradeStat/58"
 	PriceHistory = "nots/market/security/price"
 	MutualFund   = "nots/securityDailyTradeStat/66"
+	Floorsheet   = "nots/security/floorsheet"
 )
 
 type NewebAPI struct {
@@ -35,4 +36,11 @@ func Neweb() (*NewebAPI, error) {
 
 func (b *NewebAPI) buildHistorySlug(urlPath, ticker string) string {
 	return fmt.Sprintf("%s/%v?size=65", urlPath, ticker)
+}
+
+func (b *NewebAPI) buildFloorsheetSlug(id, date string, size int) string {
+	if size != 0 {
+		return fmt.Sprintf("%s/%s?&size=%d&businessDate=%s&sort=contractId,asc", Floorsheet, id, size, date)
+	}
+	return fmt.Sprintf("%s/%s?&businessDate=%s&sort=contractId,asc", Floorsheet, id, date)
 }

@@ -22,6 +22,7 @@ func (server *Server) InitRoutes() {
 	server.setJSON("/api/v1/fundamental", server.GetFundamentalSectorwise, "GET")
 	server.setJSON("/api/v1/whatif", server.WhatIf, "POST")
 	server.setJSON("/api/v1/mutualfund", server.GetMutualFundsInfo, "GET")
+	server.setJSON("/api/v1/floorsheet", server.GetFloorsheet, "GET")
 }
 
 func (server *Server) Run(addr string) {
