@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"nepse-backend/nepse"
+	"net/http"
 	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -98,4 +100,53 @@ func CreateExcelFile(folderName, fileName string, headers map[string]string, dat
 		fmt.Println(err)
 	}
 
+}
+
+func GetDateRange(w http.ResponseWriter, start, end string) ([]string, error) {
+	var days []string
+	if start == "" || end == "" {
+		return days, errors.New("start and end date are required")
+	}
+
+	// Change String to Date
+	startDate, err := StringToTime(start)
+	if err != nil {
+		return days, errors.New("start date is invalid")
+	}
+
+	startDay := startDate.Weekday().String()
+	if startDay == "Friday" || startDay == "Saturday" {
+		return days, errors.New("start date should be a weekday")
+	}
+
+	endDate, err := StringToTime(end)
+	if err != nil {
+		return days, errors.New("end date is invalid")
+	}
+
+	endDay := endDate.Weekday().String()
+
+	if endDay == "Friday" || endDay == "Saturday" {
+		return days, errors.New("end date should be a weekday")
+	}
+
+	// find the difference in days between start and end date
+	diffDays := endDate.Sub(startDate).Hours() / 24
+	if diffDays < 0 {
+		return days, errors.New("start date must be before end date")
+	}
+	if diffDays > 91 {
+		return days, errors.New("start date must be less than 65 Nepse Days before end date")
+	}
+
+	// for loop
+	// declare a variable with array of string
+	for i := 1; i <= int(diffDays); i++ {
+		addedDate := startDate.Add(time.Hour * 24 * time.Duration(i)).Format("2006-01-02")
+		if addedDate != endDate.Format("2006-01-02") {
+			days = append(days, addedDate)
+		}
+	}
+	days = append(days, end)
+	return days, nil
 }

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	responses "nepse-backend/api/response"
 	"nepse-backend/nepse"
 	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/nepse/neweb"
@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type Result struct {
@@ -45,59 +44,14 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 	// Comma separated string to a slice
 	querySector := strings.Split(sector, ",")
 
+	days, err := utils.GetDateRange(w, start, end)
+
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
 	sectors := utils.MapColumns(querySector)
-
-	if start == "" || end == "" {
-		http.Error(w, "Start and end date are required", http.StatusBadRequest)
-		return
-	}
-
-	// Change String to Date
-	startDate, err := utils.StringToTime(start)
-	if err != nil {
-		http.Error(w, "Start date is invalid", http.StatusBadRequest)
-		return
-	}
-
-	startDay := startDate.Weekday().String()
-	if startDay == "Friday" || startDay == "Saturday" {
-		http.Error(w, "Start date should be a weekday", http.StatusBadRequest)
-	}
-
-	endDate, err := utils.StringToTime(end)
-	if err != nil {
-		http.Error(w, "End date is invalid", http.StatusBadRequest)
-		return
-	}
-
-	endDay := endDate.Weekday().String()
-
-	if endDay == "Friday" || endDay == "Saturday" {
-		http.Error(w, "End date should be a weekday", http.StatusBadRequest)
-	}
-
-	// find the difference in days between start and end date
-	diffDays := endDate.Sub(startDate).Hours() / 24
-	if diffDays < 0 {
-		http.Error(w, "Start date must be before end date", http.StatusBadRequest)
-		return
-	}
-	if diffDays > 91 {
-		http.Error(w, "Start date must be less than 65 Nepse Days before end date", http.StatusBadRequest)
-		return
-	}
-
-	// for loop
-	// declare a variable with array of string
-	var days []string
-	for i := 1; i <= int(diffDays); i++ {
-		addedDate := startDate.Add(time.Hour * 24 * time.Duration(i)).Format("2006-01-02")
-		if addedDate != endDate.Format("2006-01-02") {
-			days = append(days, addedDate)
-		}
-	}
-	days = append(days, end)
-	fmt.Println("days", days)
 
 	nep, err := neweb.Neweb()
 
