@@ -141,7 +141,7 @@ func GetDateRange(w http.ResponseWriter, start, end string) ([]string, error) {
 
 	// for loop
 	// declare a variable with array of string
-	for i := 1; i <= int(diffDays); i++ {
+	for i := 0; i <= int(diffDays); i++ {
 		addedDate := startDate.Add(time.Hour * 24 * time.Duration(i)).Format("2006-01-02")
 		if addedDate != endDate.Format("2006-01-02") {
 			days = append(days, addedDate)

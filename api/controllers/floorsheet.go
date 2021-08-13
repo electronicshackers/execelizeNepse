@@ -79,9 +79,10 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 		totalElement := floorsheetInfo.Totaltrades
 
-		floorsheetInfoAgg, err := nepseBeta.GetFloorsheet(id, start, randomId, totalElement)
+		floorsheetInfoAgg, err := nepseBeta.GetFloorsheet(id, day, randomId, totalElement)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			fmt.Println("err", err)
 			return
 		}
 
