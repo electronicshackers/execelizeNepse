@@ -72,18 +72,29 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	result.SellerTurnOverMap = make(map[string]float64)
 	result.BuyerAveragePriceMap = make(map[string]float64)
 	result.SellerAveragePriceMap = make(map[string]float64)
-
+	var test []int
+	var manTest []*nepse.FloorsheetResponse
+	var sum int
 	for _, day := range days {
 
-		floorsheetInfoAgg, err := nepseBeta.GetFloorsheet(id, day, randomId, 10000)
+		floorsheetInfoAgg, err := nepseBeta.GetFloorsheet(id, day, randomId, 2000)
+
+		fmt.Println("len", len(floorsheetInfoAgg.Floorsheets.Content))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		manTest = append(manTest, floorsheetInfoAgg)
+
 		for _, sheetData := range floorsheetInfoAgg.Floorsheets.Content {
 			if sheetData.Buyermemberid != "" {
 				result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)
+
+				if sheetData.Buyermemberid == "58" {
+					test = append(test, int(sheetData.Contractquantity))
+					sum += int(sheetData.Contractquantity)
+				}
 			}
 			if sheetData.Sellermemberid != "" {
 				result.SellerQuantityMap[sheetData.Sellermemberid] += int64(sheetData.Contractquantity)
@@ -106,20 +117,22 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	result.Ticker = ticker
 
 	var allCharts []*charts.Bar
-	folderName := "floorsheet"
+	folderName := "floorsheet-today"
 	if _, err := os.Stat(folderName); os.IsNotExist(err) {
 		os.Mkdir(folderName, 0777)
 	}
 
-	allCharts = append(allCharts, BarGraphFS(result.BuyerQuantityMap, "Top Buyers"))
-	allCharts = append(allCharts, BarGraphFS(result.SellerQuantityMap, "Top Sellers"))
+	allCharts = append(allCharts, BarGraphFS(result.BuyerQuantityMap, result.SellerQuantityMap, "Top Buyers"))
+	allCharts = append(allCharts, BarGraphFS(result.SellerQuantityMap, result.BuyerQuantityMap, "Top Sellers"))
 
 	go CreateHTMLFS(allCharts, fmt.Sprintf("%s/%s", folderName, ticker))
+	fmt.Println("sum", sum)
+	fmt.Println("test", test)
 
-	responses.JSON(w, http.StatusOK, result)
+	responses.JSON(w, http.StatusOK, manTest)
 }
 
-func BarGraphFS(aggregatedData map[string]int64, title string) *charts.Bar {
+func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title string) *charts.Bar {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -134,9 +147,15 @@ func BarGraphFS(aggregatedData map[string]int64, title string) *charts.Bar {
 		keys = append(keys, v.Key)
 	}
 
+	var alterSorted []kv
+	for _, v := range topSorted {
+		alterSorted = append(alterSorted, kv{v.Key, alterAggregateData[v.Key]})
+	}
+
 	// Put data into instance
 	bar.SetXAxis(keys).
-		AddSeries("Category A", generateBarItems(topSorted))
+		AddSeries("Category A", generateBarItems(topSorted)).
+		AddSeries("Category B", generateBarItems(alterSorted))
 
 	return bar
 }
