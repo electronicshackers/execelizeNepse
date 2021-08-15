@@ -8,6 +8,7 @@ import (
 	"nepse-backend/utils"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -23,6 +24,11 @@ type FloorsheetResult struct {
 	SellerQuantityMap     map[string]int64   `json:"sellerQuantityMap"`
 	SellerTurnOverMap     map[string]float64 `json:"sellerTurnOverMap"`
 	SellerAveragePriceMap map[string]float64 `json:"sellerAveragePriceMap"`
+}
+
+type TransactionData struct {
+	Ticker   string
+	Quantity int64
 }
 
 func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request) {
@@ -69,25 +75,69 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 
 		}
 	}
-
-	type testS struct {
-		Ticker   string
-		Quantity int64
-	}
-	aggregatedDataBuy := make(map[string][]testS)
-	aggregatedDataSell := make(map[string][]testS)
+	aggregatedDataBuy := make(map[string][]TransactionData)
+	aggregatedDataSell := make(map[string][]TransactionData)
 
 	for _, v := range floorsheetContents {
 		if v.Buyermemberid != "" {
-			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], testS{v.Stocksymbol, int64(v.Contractquantity)})
+			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], TransactionData{v.Stocksymbol, int64(v.Contractquantity)})
 		}
 
 		if v.Sellermemberid != "" {
-			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], testS{v.Stocksymbol, int64(v.Contractquantity)})
+			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], TransactionData{v.Stocksymbol, int64(v.Contractquantity)})
 		}
 
 	}
-	responses.JSON(w, 200, aggregatedDataBuy)
+
+	finalDataBuy := make(map[string][]TransactionData)
+	finalDataSell := make(map[string][]TransactionData)
+
+	for k, v := range aggregatedDataBuy {
+		sumDataBuy := make(map[string]int64)
+		for _, w := range v {
+			sumDataBuy[w.Ticker] += w.Quantity
+		}
+
+		for key, value := range sumDataBuy {
+			finalDataBuy[k] = append(finalDataBuy[k], TransactionData{key, value})
+		}
+	}
+
+	for k, v := range aggregatedDataSell {
+		sumDataSell := make(map[string]int64)
+		for _, w := range v {
+			sumDataSell[w.Ticker] += w.Quantity
+		}
+
+		for key, value := range sumDataSell {
+			finalDataSell[k] = append(finalDataSell[k], TransactionData{key, value})
+		}
+	}
+
+	var buyCharts []*charts.Bar
+	folderName := "floorsheetAgg"
+	if _, err := os.Stat(folderName); os.IsNotExist(err) {
+		os.Mkdir(folderName, 0777)
+	}
+	for k, v := range finalDataBuy {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		finalDataBuy[k] = v[0:10]
+		buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Buy of Broker Number %s", k)))
+	}
+	CreateHTMLAgg(buyCharts, "buy")
+
+	var sellCharts []*charts.Bar
+	for k, v := range finalDataSell {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		finalDataSell[k] = v[0:10]
+		sellCharts = append(sellCharts, BarGraphAgg(finalDataSell[k], fmt.Sprintf("Top Sell of Broker Number %s", k)))
+	}
+	CreateHTMLAgg(sellCharts, "sell")
+	responses.JSON(w, 200, finalDataBuy)
 }
 
 func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
@@ -228,6 +278,45 @@ func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title strin
 }
 
 func CreateHTMLFS(barCharts []*charts.Bar, fileName string) {
+	page := components.NewPage()
+
+	for _, v := range barCharts {
+		page.AddCharts(v)
+	}
+	f, _ := os.Create(fmt.Sprintf("%s.html", fileName))
+	page.Render(f)
+}
+
+func BarGraphAgg(data []TransactionData, title string) *charts.Bar {
+	bar := charts.NewBar()
+
+	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
+		Title: title,
+	}))
+
+	var keys = make([]string, 0)
+
+	for _, v := range data {
+		keys = append(keys, v.Ticker)
+	}
+
+	// Put data into instance
+	bar.SetXAxis(keys).
+		AddSeries("Category A", generateBarItemsAgg(data))
+
+	return bar
+}
+
+func generateBarItemsAgg(data []TransactionData) []opts.BarData {
+	items := make([]opts.BarData, 0)
+
+	for _, v := range data {
+		items = append(items, opts.BarData{Value: v.Quantity})
+	}
+	return items
+}
+
+func CreateHTMLAgg(barCharts []*charts.Bar, fileName string) {
 	page := components.NewPage()
 
 	for _, v := range barCharts {
