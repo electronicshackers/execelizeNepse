@@ -38,9 +38,9 @@ func (b *NewebAPI) buildHistorySlug(urlPath, ticker string) string {
 	return fmt.Sprintf("%s/%v?size=65", urlPath, ticker)
 }
 
-func (b *NewebAPI) buildFloorsheetSlug(id, date string, size int) string {
+func (b *NewebAPI) buildFloorsheetSlug(id, date string, page int, size int) string {
 	if size != 0 {
-		return fmt.Sprintf("%s/%s?&size=%d&businessDate=%s&sort=contractId,asc", Floorsheet, id, size, date)
+		return fmt.Sprintf("%s/%s?page=%d&size=%d&businessDate=%s&sort=contractId,asc", Floorsheet, id, page, size, date)
 	}
 	return fmt.Sprintf("%s/%s?&businessDate=%s&sort=contractId,asc", Floorsheet, id, date)
 }

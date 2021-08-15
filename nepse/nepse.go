@@ -135,28 +135,30 @@ type PriceHistory struct {
 	Empty bool `json:"empty"`
 }
 
+type FloorsheetContent struct {
+	ID               interface{} `json:"id"`
+	Contractid       int64       `json:"contractId"`
+	Contracttype     interface{} `json:"contractType"`
+	Stocksymbol      string      `json:"stockSymbol"`
+	Buyermemberid    string      `json:"buyerMemberId"`
+	Sellermemberid   string      `json:"sellerMemberId"`
+	Contractquantity int         `json:"contractQuantity"`
+	Contractrate     float64     `json:"contractRate"`
+	Contractamount   float64     `json:"contractAmount"`
+	Businessdate     string      `json:"businessDate"`
+	Tradebookid      int         `json:"tradeBookId"`
+	Stockid          int         `json:"stockId"`
+	Buyerbrokername  string      `json:"buyerBrokerName"`
+	Sellerbrokername string      `json:"sellerBrokerName"`
+	Tradetime        string      `json:"tradeTime"`
+	Securityname     string      `json:"securityName"`
+}
+
 type FloorsheetResponse struct {
 	Totalamount float64 `json:"totalAmount"`
 	Totalqty    float64 `json:"totalQty"`
 	Floorsheets struct {
-		Content []struct {
-			ID               interface{} `json:"id"`
-			Contractid       int64       `json:"contractId"`
-			Contracttype     interface{} `json:"contractType"`
-			Stocksymbol      string      `json:"stockSymbol"`
-			Buyermemberid    string      `json:"buyerMemberId"`
-			Sellermemberid   string      `json:"sellerMemberId"`
-			Contractquantity int         `json:"contractQuantity"`
-			Contractrate     float64     `json:"contractRate"`
-			Contractamount   float64     `json:"contractAmount"`
-			Businessdate     string      `json:"businessDate"`
-			Tradebookid      int         `json:"tradeBookId"`
-			Stockid          int         `json:"stockId"`
-			Buyerbrokername  string      `json:"buyerBrokerName"`
-			Sellerbrokername string      `json:"sellerBrokerName"`
-			Tradetime        string      `json:"tradeTime"`
-			Securityname     string      `json:"securityName"`
-		} `json:"content"`
+		Content  []FloorsheetContent `json:"content"`
 		Pageable struct {
 			Sort struct {
 				Sorted   bool `json:"sorted"`
@@ -196,5 +198,5 @@ type NepseInterface interface {
 	GetStockDetails(ticker string)
 	GetSummary(ticker string)
 	GetPriceHistory(ticker string) ([]PriceHistoryMinified, error)
-	GetFloorsheet(stockId, businessDate, randomId string, size int) (*FloorsheetResponse, error)
+	GetFloorsheet(stockId, businessDate, randomId string, page, size int) (*FloorsheetResponse, error)
 }

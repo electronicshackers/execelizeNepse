@@ -8,6 +8,7 @@ import (
 	"nepse-backend/utils"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
@@ -72,47 +73,52 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	result.SellerTurnOverMap = make(map[string]float64)
 	result.BuyerAveragePriceMap = make(map[string]float64)
 	result.SellerAveragePriceMap = make(map[string]float64)
-	var test []int
-	var manTest []*nepse.FloorsheetResponse
-	var sum int
+
+	var floorsheetContents []nepse.FloorsheetContent
+
 	for _, day := range days {
 
-		floorsheetInfoAgg, err := nepseBeta.GetFloorsheet(id, day, randomId, 2000)
+		var count = 0
+		for {
+			time.Sleep(400 * time.Millisecond)
+			floorsheet, err := nepseBeta.GetFloorsheet(id, day, randomId, count, 2000)
 
-		fmt.Println("len", len(floorsheetInfoAgg.Floorsheets.Content))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		manTest = append(manTest, floorsheetInfoAgg)
-
-		for _, sheetData := range floorsheetInfoAgg.Floorsheets.Content {
-			if sheetData.Buyermemberid != "" {
-				result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)
-
-				if sheetData.Buyermemberid == "58" {
-					test = append(test, int(sheetData.Contractquantity))
-					sum += int(sheetData.Contractquantity)
-				}
+			if err != nil {
+				responses.ERROR(w, 400, err)
+				return
 			}
-			if sheetData.Sellermemberid != "" {
-				result.SellerQuantityMap[sheetData.Sellermemberid] += int64(sheetData.Contractquantity)
-			}
-			if sheetData.Buyermemberid != "" {
-				result.BuyerTurnOverMap[sheetData.Buyermemberid] += sheetData.Contractamount
-			}
-			if sheetData.Sellermemberid != "" {
-				result.SellerTurnOverMap[sheetData.Sellermemberid] += sheetData.Contractamount
-			}
-		}
 
-		for k, v := range result.BuyerQuantityMap {
-			result.BuyerAveragePriceMap[k] = utils.ToFixed(float64(result.BuyerTurnOverMap[k])/float64(v), 2)
+			floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
+
+			isLastPage := floorsheet.Floorsheets.Last
+			count++
+			if isLastPage {
+				break
+			}
+
 		}
-		for k, v := range result.SellerQuantityMap {
-			result.SellerAveragePriceMap[k] = utils.ToFixed(float64(result.SellerTurnOverMap[k])/float64(v), 2)
+	}
+
+	for _, sheetData := range floorsheetContents {
+		if sheetData.Buyermemberid != "" {
+			result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)
 		}
+		if sheetData.Sellermemberid != "" {
+			result.SellerQuantityMap[sheetData.Sellermemberid] += int64(sheetData.Contractquantity)
+		}
+		if sheetData.Buyermemberid != "" {
+			result.BuyerTurnOverMap[sheetData.Buyermemberid] += sheetData.Contractamount
+		}
+		if sheetData.Sellermemberid != "" {
+			result.SellerTurnOverMap[sheetData.Sellermemberid] += sheetData.Contractamount
+		}
+	}
+
+	for k, v := range result.BuyerQuantityMap {
+		result.BuyerAveragePriceMap[k] = utils.ToFixed(float64(result.BuyerTurnOverMap[k])/float64(v), 2)
+	}
+	for k, v := range result.SellerQuantityMap {
+		result.SellerAveragePriceMap[k] = utils.ToFixed(float64(result.SellerTurnOverMap[k])/float64(v), 2)
 	}
 	result.Ticker = ticker
 
@@ -126,10 +132,8 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	allCharts = append(allCharts, BarGraphFS(result.SellerQuantityMap, result.BuyerQuantityMap, "Top Sellers"))
 
 	go CreateHTMLFS(allCharts, fmt.Sprintf("%s/%s", folderName, ticker))
-	fmt.Println("sum", sum)
-	fmt.Println("test", test)
 
-	responses.JSON(w, http.StatusOK, manTest)
+	responses.JSON(w, http.StatusOK, floorsheetContents)
 }
 
 func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title string) *charts.Bar {
