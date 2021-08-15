@@ -25,6 +25,71 @@ type FloorsheetResult struct {
 	SellerAveragePriceMap map[string]float64 `json:"sellerAveragePriceMap"`
 }
 
+func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	start := params.Get("start")
+	randomId := params.Get("id")
+
+	var nepseBeta nepse.NepseInterface
+
+	nepseBeta, err := neweb.Neweb()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	nepseSectors, err := nepseBeta.GetStocks()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var floorsheetContents []nepse.FloorsheetContent
+
+	for _, v := range nepseSectors {
+		var count = 0
+		for {
+			time.Sleep(400 * time.Millisecond)
+			floorsheet, err := nepseBeta.GetFloorsheet(v.Id, start, randomId, count, 2000)
+
+			if err != nil {
+				responses.ERROR(w, 400, err)
+				return
+			}
+
+			floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
+
+			isLastPage := floorsheet.Floorsheets.Last
+			count++
+			if isLastPage {
+				break
+			}
+
+		}
+	}
+
+	type testS struct {
+		Ticker   string
+		Quantity int64
+	}
+	aggregatedDataBuy := make(map[string][]testS)
+	aggregatedDataSell := make(map[string][]testS)
+
+	for _, v := range floorsheetContents {
+		if v.Buyermemberid != "" {
+			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], testS{v.Stocksymbol, int64(v.Contractquantity)})
+		}
+
+		if v.Sellermemberid != "" {
+			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], testS{v.Stocksymbol, int64(v.Contractquantity)})
+		}
+
+	}
+	responses.JSON(w, 200, aggregatedDataBuy)
+}
+
 func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
@@ -39,8 +104,6 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
-
-	fmt.Println("days", days)
 
 	var nepseBeta nepse.NepseInterface
 
