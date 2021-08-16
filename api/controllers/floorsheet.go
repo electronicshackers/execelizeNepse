@@ -35,11 +35,19 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 	params := r.URL.Query()
 
 	start := params.Get("start")
+	end := params.Get("end")
 	randomId := params.Get("id")
+
+	days, err := utils.GetDateRange(w, start, end)
+
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
 
 	var nepseBeta nepse.NepseInterface
 
-	nepseBeta, err := neweb.Neweb()
+	nepseBeta, err = neweb.Neweb()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -53,26 +61,27 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 	}
 
 	var floorsheetContents []nepse.FloorsheetContent
+	for _, day := range days {
+		for _, v := range nepseSectors {
+			var count = 0
+			for {
+				time.Sleep(800 * time.Millisecond)
+				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000)
 
-	for _, v := range nepseSectors {
-		var count = 0
-		for {
-			time.Sleep(400 * time.Millisecond)
-			floorsheet, err := nepseBeta.GetFloorsheet(v.Id, start, randomId, count, 2000)
+				if err != nil {
+					responses.ERROR(w, 400, err)
+					return
+				}
 
-			if err != nil {
-				responses.ERROR(w, 400, err)
-				return
+				floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
+
+				isLastPage := floorsheet.Floorsheets.Last
+				count++
+				if isLastPage {
+					break
+				}
+
 			}
-
-			floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
-
-			isLastPage := floorsheet.Floorsheets.Last
-			count++
-			if isLastPage {
-				break
-			}
-
 		}
 	}
 	aggregatedDataBuy := make(map[string][]TransactionData)
