@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	responses "nepse-backend/api/response"
 	"nepse-backend/nepse"
 	"nepse-backend/nepse/neweb"
@@ -27,8 +29,211 @@ type FloorsheetResult struct {
 }
 
 type TransactionData struct {
-	Ticker   string
-	Quantity int64
+	Ticker                string
+	Quantity              int64
+	TotalQuantity         int64
+	PercentageShare       float64
+	BrokerPercentageShare float64
+}
+
+func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	start := params.Get("start")
+	end := params.Get("end")
+	randomId := params.Get("id")
+
+	days, err := utils.GetDateRange(w, start, end)
+
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var nepseBeta nepse.NepseInterface
+
+	nepseBeta, err = neweb.Neweb()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	nepseSectors, err := nepseBeta.GetStocks()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var floorsheetContents []nepse.FloorsheetContent
+	for _, day := range days {
+		for _, v := range nepseSectors {
+			var count = 0
+			for {
+				time.Sleep(800 * time.Millisecond)
+				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000)
+
+				if err != nil {
+					responses.ERROR(w, 400, err)
+					return
+				}
+
+				floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
+
+				isLastPage := floorsheet.Floorsheets.Last
+				count++
+				if isLastPage {
+					break
+				}
+
+			}
+		}
+	}
+
+	aggregatedDataBuy := make(map[string][]TransactionData)
+	aggregatedDataSell := make(map[string][]TransactionData)
+
+	brokerBuyVolume := make(map[string]int64)
+	brokerSellVolume := make(map[string]int64)
+
+	stockMap := make(map[string]int64)
+
+	for _, v := range floorsheetContents {
+		stockMap[v.Stocksymbol] += int64(v.Contractquantity)
+		if v.Buyermemberid != "" {
+			brokerBuyVolume[v.Buyermemberid] += int64(v.Contractquantity)
+			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], TransactionData{Ticker: v.Stocksymbol, Quantity: int64(v.Contractquantity)})
+		}
+
+		if v.Sellermemberid != "" {
+			brokerSellVolume[v.Sellermemberid] += int64(v.Contractquantity)
+			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], TransactionData{Ticker: v.Stocksymbol, Quantity: int64(v.Contractquantity)})
+		}
+	}
+
+	finalDataBuy := make(map[string][]TransactionData)
+	finalDataSell := make(map[string][]TransactionData)
+
+	for k, v := range aggregatedDataBuy {
+		sumDataBuy := make(map[string]int64)
+		for _, w := range v {
+			sumDataBuy[w.Ticker] += w.Quantity
+		}
+		totalBrokerVolume := brokerBuyVolume[k]
+
+		for key, value := range sumDataBuy {
+			total := stockMap[key]
+			brokerPercentage := float64(value) / float64(totalBrokerVolume) * 100
+			percentage := float64(value) / float64(total) * 100
+			finalDataBuy[k] = append(finalDataBuy[k], TransactionData{Ticker: key, Quantity: value, TotalQuantity: total, PercentageShare: percentage, BrokerPercentageShare: brokerPercentage})
+		}
+	}
+
+	for k, v := range aggregatedDataSell {
+		sumDataSell := make(map[string]int64)
+		for _, w := range v {
+			sumDataSell[w.Ticker] += w.Quantity
+		}
+		totalBrokerVolume := brokerSellVolume[k]
+
+		for key, value := range sumDataSell {
+			total := stockMap[key]
+			percentage := float64(value) / float64(total) * 100
+			brokerPercentage := float64(value) / float64(totalBrokerVolume) * 100
+			finalDataSell[k] = append(finalDataSell[k], TransactionData{Ticker: key, Quantity: value, TotalQuantity: total, PercentageShare: percentage, BrokerPercentageShare: brokerPercentage})
+		}
+	}
+
+	var pumpedStockDataBroker = make(map[string][]TransactionData)
+	for k, v := range finalDataBuy {
+
+		for _, stockTransaction := range v {
+			if stockTransaction.PercentageShare > 25 && stockTransaction.BrokerPercentageShare > 5 {
+				pumpedStockDataBroker[k] = append(pumpedStockDataBroker[k], stockTransaction)
+			}
+		}
+	}
+
+	var dumpedStockDataBroker = make(map[string][]TransactionData)
+
+	for k, v := range finalDataSell {
+		for _, stockTransaction := range v {
+			if stockTransaction.PercentageShare > 25 && stockTransaction.BrokerPercentageShare > 5 {
+				dumpedStockDataBroker[k] = append(dumpedStockDataBroker[k], stockTransaction)
+			}
+		}
+	}
+
+	var brokerBuySorted []kv
+	for k, v := range brokerBuyVolume {
+		brokerBuySorted = append(brokerBuySorted, kv{k, v})
+	}
+
+	sort.Slice(brokerBuySorted, func(i, j int) bool {
+		return brokerBuySorted[i].Value > brokerBuySorted[j].Value
+	})
+
+	for k, v := range finalDataBuy {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		finalDataBuy[k] = v[0:10]
+	}
+
+	var brokerSellSorted []kv
+	for k, v := range brokerSellVolume {
+		brokerSellSorted = append(brokerSellSorted, kv{k, v})
+	}
+	sort.Slice(brokerSellSorted, func(i, j int) bool {
+		return brokerSellSorted[i].Value > brokerSellSorted[j].Value
+	})
+
+	for k, v := range finalDataSell {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		finalDataSell[k] = v[0:10]
+	}
+
+	var buyCharts []*charts.Bar
+
+	var topBrokerSellData = make(map[string][]TransactionData)
+	for k, v := range finalDataSell {
+		for _, bs := range brokerSellSorted[0:5] {
+			if k == bs.Key {
+				topBrokerSellData[k] = v
+				buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Sell of Broker Number %s", k)))
+			}
+		}
+	}
+
+	var topBrokerBuyData = make(map[string][]TransactionData)
+	for k, v := range finalDataBuy {
+		for _, bs := range brokerBuySorted[0:5] {
+			if k == bs.Key {
+				topBrokerBuyData[k] = v
+				buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Buy of Broker Number %s", k)))
+			}
+		}
+	}
+
+	for k, v := range pumpedStockDataBroker {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		buyCharts = append(buyCharts, BarGraphAgg(v, fmt.Sprintf("Top Pumped Stock of Broker Number %s", k)))
+	}
+
+	for k, v := range dumpedStockDataBroker {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Quantity > v[j].Quantity
+		})
+		buyCharts = append(buyCharts, BarGraphAgg(v, fmt.Sprintf("Top Dumped Stock of Broker Number %s", k)))
+	}
+
+	CreateHTMLAgg(buyCharts, "analysis")
+
 }
 
 func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request) {
@@ -84,16 +289,18 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
+	document, _ := json.MarshalIndent(floorsheetContents, "", " ")
+	_ = ioutil.WriteFile("./document.json", document, 0644)
 	aggregatedDataBuy := make(map[string][]TransactionData)
 	aggregatedDataSell := make(map[string][]TransactionData)
 
 	for _, v := range floorsheetContents {
 		if v.Buyermemberid != "" {
-			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], TransactionData{v.Stocksymbol, int64(v.Contractquantity)})
+			aggregatedDataBuy[v.Buyermemberid] = append(aggregatedDataBuy[v.Buyermemberid], TransactionData{Ticker: v.Stocksymbol, Quantity: int64(v.Contractquantity)})
 		}
 
 		if v.Sellermemberid != "" {
-			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], TransactionData{v.Stocksymbol, int64(v.Contractquantity)})
+			aggregatedDataSell[v.Sellermemberid] = append(aggregatedDataSell[v.Sellermemberid], TransactionData{Ticker: v.Stocksymbol, Quantity: int64(v.Contractquantity)})
 		}
 
 	}
@@ -108,7 +315,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		}
 
 		for key, value := range sumDataBuy {
-			finalDataBuy[k] = append(finalDataBuy[k], TransactionData{key, value})
+			finalDataBuy[k] = append(finalDataBuy[k], TransactionData{Ticker: key, Quantity: value})
 		}
 	}
 
@@ -119,7 +326,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		}
 
 		for key, value := range sumDataSell {
-			finalDataSell[k] = append(finalDataSell[k], TransactionData{key, value})
+			finalDataSell[k] = append(finalDataSell[k], TransactionData{Ticker: key, Quantity: value})
 		}
 	}
 
@@ -202,7 +409,7 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 		var count = 0
 		for {
-			time.Sleep(400 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 			floorsheet, err := nepseBeta.GetFloorsheet(id, day, randomId, count, 2000)
 
 			if err != nil {
@@ -255,7 +462,7 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 	go CreateHTMLFS(allCharts, fmt.Sprintf("%s/%s", folderName, ticker))
 
-	responses.JSON(w, http.StatusOK, floorsheetContents)
+	responses.JSON(w, http.StatusOK, result)
 }
 
 func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title string) *charts.Bar {

@@ -135,7 +135,7 @@ func GetDateRange(w http.ResponseWriter, start, end string) ([]string, error) {
 	if diffDays < 0 {
 		return days, errors.New("start date must be before end date")
 	}
-	if diffDays > 91 {
+	if diffDays > 191 {
 		return days, errors.New("start date must be less than 65 Nepse Days before end date")
 	}
 
