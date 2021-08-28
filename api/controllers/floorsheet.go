@@ -178,7 +178,9 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 		sort.Slice(v, func(i, j int) bool {
 			return v[i].Quantity > v[j].Quantity
 		})
-		finalDataBuy[k] = v[0:10]
+		if len(v) > 10 {
+			finalDataBuy[k] = v[0:10]
+		}
 	}
 
 	var brokerSellSorted []kv
@@ -193,24 +195,26 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 		sort.Slice(v, func(i, j int) bool {
 			return v[i].Quantity > v[j].Quantity
 		})
-		finalDataSell[k] = v[0:10]
+		if len(v) > 10 {
+			finalDataSell[k] = v[0:10]
+		}
 	}
 
 	var buyCharts []*charts.Bar
 
 	var topBrokerSellData = make(map[string][]TransactionData)
 	for k, v := range finalDataSell {
-		for _, bs := range brokerSellSorted[0:5] {
+		for _, bs := range brokerSellSorted[0:10] {
 			if k == bs.Key {
 				topBrokerSellData[k] = v
-				buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Sell of Broker Number %s", k)))
+				buyCharts = append(buyCharts, BarGraphAgg(finalDataSell[k], fmt.Sprintf("Top Sell of Broker Number %s", k)))
 			}
 		}
 	}
 
 	var topBrokerBuyData = make(map[string][]TransactionData)
 	for k, v := range finalDataBuy {
-		for _, bs := range brokerBuySorted[0:5] {
+		for _, bs := range brokerBuySorted[0:10] {
 			if k == bs.Key {
 				topBrokerBuyData[k] = v
 				buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Buy of Broker Number %s", k)))
@@ -290,7 +294,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	document, _ := json.MarshalIndent(floorsheetContents, "", " ")
-	_ = ioutil.WriteFile("./document.json", document, 0644)
+	_ = ioutil.WriteFile("./floorsheet.json", document, 0644)
 	aggregatedDataBuy := make(map[string][]TransactionData)
 	aggregatedDataSell := make(map[string][]TransactionData)
 
@@ -342,7 +346,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		finalDataBuy[k] = v[0:10]
 		buyCharts = append(buyCharts, BarGraphAgg(finalDataBuy[k], fmt.Sprintf("Top Buy of Broker Number %s", k)))
 	}
-	CreateHTMLAgg(buyCharts, "buy")
+	CreateHTMLAgg(buyCharts, "weekBuy")
 
 	var sellCharts []*charts.Bar
 	for k, v := range finalDataSell {
@@ -352,7 +356,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		finalDataSell[k] = v[0:10]
 		sellCharts = append(sellCharts, BarGraphAgg(finalDataSell[k], fmt.Sprintf("Top Sell of Broker Number %s", k)))
 	}
-	CreateHTMLAgg(sellCharts, "sell")
+	CreateHTMLAgg(sellCharts, "weekSell")
 	responses.JSON(w, 200, finalDataBuy)
 }
 
@@ -428,6 +432,9 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	document, _ := json.MarshalIndent(floorsheetContents, "", " ")
+	_ = ioutil.WriteFile(fmt.Sprintf("./%s.json", ticker), document, 0644)
+
 	for _, sheetData := range floorsheetContents {
 		if sheetData.Buyermemberid != "" {
 			result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)
@@ -452,7 +459,7 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	result.Ticker = ticker
 
 	var allCharts []*charts.Bar
-	folderName := "floorsheet-today"
+	folderName := "for-youtube"
 	if _, err := os.Stat(folderName); os.IsNotExist(err) {
 		os.Mkdir(folderName, 0777)
 	}

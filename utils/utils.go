@@ -81,6 +81,8 @@ func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request
 	}
 
 	req, err := http.NewRequest(method, u.String(), buf)
+	fmt.Println("req", req)
+	fmt.Println("u.String()", u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +92,7 @@ func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request
 	}
 
 	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Accept", "application/json")
 	return req, nil
 }
 

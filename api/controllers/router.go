@@ -26,6 +26,8 @@ func (server *Server) InitRoutes() {
 
 	server.setJSON("/api/v1/floorsheet/bulk", server.GetFloorSheetAggregated, "GET")
 	server.setJSON("/api/v1/floorsheet/analysis", server.FloorsheetAnalysis, "GET")
+
+	server.setJSON("/api/v1/technical", server.GetTechnicalData, "GET")
 }
 
 func (server *Server) Run(addr string) {

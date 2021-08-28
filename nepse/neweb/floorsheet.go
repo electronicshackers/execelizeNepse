@@ -2,7 +2,6 @@ package neweb
 
 import (
 	"context"
-	"fmt"
 	"nepse-backend/nepse"
 	"net/http"
 )
@@ -13,9 +12,6 @@ type test struct {
 
 func (n *NewebAPI) GetFloorsheet(stockId, businessDate, randomId string, page, size int) (*nepse.FloorsheetResponse, error) {
 	url := n.buildFloorsheetSlug(stockId, businessDate, page, size)
-
-	fmt.Println("fucking url", url)
-
 	ok := test{Id: randomId}
 
 	req, err := n.client.NewRequest(http.MethodPost, url, ok)

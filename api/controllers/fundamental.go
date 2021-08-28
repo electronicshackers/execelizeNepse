@@ -311,7 +311,7 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 					key.NonLifeInsurance.TotalPolicy = financial.Message.Data[0].Totalnoofpolicies
 					key.NonLifeInsurance.RenewedPolicy = financial.Message.Data[0].Totalrenewedpolicies
 					key.NonLifeInsurance.TotalRevenue = financial.Message.Data[0].Totalrevenue
-					key.NonLifeInsurance.TotalByRenewed = utils.ToFixed((key.NonLifeInsurance.TotalPolicy / key.NonLifeInsurance.RenewedPolicy), 2)
+					key.NonLifeInsurance.TotalByRenewed = utils.ToFixed((key.NonLifeInsurance.RenewedPolicy / key.NonLifeInsurance.TotalPolicy), 2)
 				}
 			}
 
