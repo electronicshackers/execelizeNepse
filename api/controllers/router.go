@@ -13,6 +13,7 @@ type Server struct {
 }
 
 func (server *Server) setJSON(path string, next func(http.ResponseWriter, *http.Request), method string) {
+	server.Router.Use(middlewares.CORS)
 	server.Router.HandleFunc(path, middlewares.SetMiddlewareJSON(next)).Methods(method, "OPTIONS")
 }
 
@@ -28,6 +29,8 @@ func (server *Server) InitRoutes() {
 	server.setJSON("/api/v1/floorsheet/analysis", server.FloorsheetAnalysis, "GET")
 
 	server.setJSON("/api/v1/technical", server.GetTechnicalData, "GET")
+	server.setJSON("/api/v1/stocks", server.GetStocks, "GET")
+	server.setJSON("/api/v1/dividend", server.GetDividends, "GET")
 }
 
 func (server *Server) Run(addr string) {

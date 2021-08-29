@@ -15,7 +15,7 @@ import (
 )
 
 type WhatIfRequest struct {
-	Stock    string    `json:"stock"`
+	Stock    []string  `json:"stock"`
 	Amount   float64   `json:"amount"`
 	Quantity int       `json:"quantity"`
 	BuyDate  string    `json:"buyDate"`
@@ -53,43 +53,50 @@ func (server *Server) WhatIf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dividend, err := biz.GetDividendHistory(whatIf.Stock)
+	var yields []DividendYield
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for _, stock := range whatIf.Stock {
+
+		dividend, err := biz.GetDividendHistory(stock)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		prices, err := biz.GetPriceHistory(stock, buyTime, timeNow)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		indexOfTime := closest(prices.T, int(buyTime))
+
+		priceAtTime := prices.C[indexOfTime]
+
+		if whatIf.Amount != 0 {
+			whatIf.Quantity = int(math.Floor(whatIf.Amount / priceAtTime))
+		}
+
+		var yield DividendYield
+
+		year := time.Unix(buyTime, 0).Year()
+		yield = calculateDividendYield(dividend, year, whatIf.Quantity)
+
+		indexOfSellingTime := closest(prices.T, int(timeNow))
+		sellingPrice := prices.C[indexOfSellingTime]
+
+		yield.InitialCost = yield.InitialQuantity * priceAtTime
+		yield.TotalValue = sellingPrice*yield.TotalQuantity + yield.TotalCashYield
+		yield.Profit = yield.TotalValue - yield.InitialCost
+
+		yield.ProfitPercentage = fmt.Sprintf("%.2f%%", utils.ToFixed((yield.Profit/yield.InitialCost)*100, 2))
+		yield.Ticker = stock
+		yields = append(yields, yield)
 	}
 
-	prices, err := biz.GetPriceHistory(whatIf.Stock, buyTime, timeNow)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	indexOfTime := closest(prices.T, int(buyTime))
-
-	priceAtTime := prices.C[indexOfTime]
-
-	if whatIf.Amount != 0 {
-		whatIf.Quantity = int(math.Floor(whatIf.Amount / priceAtTime))
-	}
-
-	var yield DividendYield
-
-	year := time.Unix(buyTime, 0).Year()
-	yield = calculateDividendYield(dividend, year, whatIf.Quantity)
-
-	indexOfSellingTime := closest(prices.T, int(timeNow))
-	sellingPrice := prices.C[indexOfSellingTime]
-
-	yield.InitialCost = yield.InitialQuantity * priceAtTime
-	yield.TotalValue = sellingPrice*yield.TotalQuantity + yield.TotalCashYield
-	yield.Profit = yield.TotalValue - yield.InitialCost
-
-	yield.ProfitPercentage = fmt.Sprintf("%.2f%%", utils.ToFixed((yield.Profit/yield.InitialCost)*100, 2))
-
-	responses.JSON(w, 200, yield)
+	responses.JSON(w, 200, yields)
 }
 
 func closest(array []int, num int) int {
@@ -112,6 +119,7 @@ func indexOf(element int, data []int) int {
 }
 
 type DividendYield struct {
+	Ticker           string                `json:"ticker"`
 	TotalCashYield   float64               `json:"totalCashYield"`
 	TotalQuantity    float64               `json:"totalQuantity"`
 	InitialQuantity  float64               `json:"initialQuantity"`
@@ -123,7 +131,7 @@ type DividendYield struct {
 }
 
 type YearlyDividendYield struct {
-	Year        string  `json:"year"`
+	Year        int     `json:"year"`
 	Cash        string  `json:"cash"`
 	Bonus       string  `json:"bonus"`
 	CashAfter   float64 `json:"cashAfter"`
@@ -144,7 +152,7 @@ func calculateDividendYield(dividend *bizmandu.DividendHistory, year int, quanit
 			if divYearInt > year {
 
 				dividendYield.YearlyYield = append(dividendYield.YearlyYield, YearlyDividendYield{
-					Year:        div.Year,
+					Year:        divYearInt,
 					Cash:        fmt.Sprintf("%.2f%%", div.Cash*100),
 					Bonus:       fmt.Sprintf("%.2f%%", div.Bonus*100),
 					CashBefore:  utils.ToFixed(dividendYield.TotalCashYield, 2),
@@ -154,8 +162,6 @@ func calculateDividendYield(dividend *bizmandu.DividendHistory, year int, quanit
 				})
 				dividendYield.TotalCashYield = utils.ToFixed(dividendYield.TotalCashYield+div.Cash*100*dividendYield.TotalQuantity, 2)
 				dividendYield.TotalQuantity = math.Floor(dividendYield.TotalQuantity + div.Bonus*dividendYield.TotalQuantity)
-
-				fmt.Println("dividendYield.TotalCashYield", dividendYield.TotalCashYield, "Year", divYearInt)
 			}
 		}
 

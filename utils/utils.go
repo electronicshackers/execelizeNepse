@@ -81,8 +81,6 @@ func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request
 	}
 
 	req, err := http.NewRequest(method, u.String(), buf)
-	fmt.Println("req", req)
-	fmt.Println("u.String()", u.String())
 	if err != nil {
 		return nil, err
 	}
