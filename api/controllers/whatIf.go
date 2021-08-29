@@ -131,13 +131,13 @@ type DividendYield struct {
 }
 
 type YearlyDividendYield struct {
-	Year        int     `json:"year"`
-	Cash        string  `json:"cash"`
-	Bonus       string  `json:"bonus"`
-	CashAfter   float64 `json:"cashAfter"`
-	CashBefore  float64 `json:"cashBefore"`
-	ShareAfter  float64 `json:"shareAfter"`
-	ShareBefore float64 `json:"shareBefore"`
+	Year        interface{} `json:"year"`
+	Cash        string      `json:"cash"`
+	Bonus       string      `json:"bonus"`
+	CashAfter   float64     `json:"cashAfter"`
+	CashBefore  float64     `json:"cashBefore"`
+	ShareAfter  float64     `json:"shareAfter"`
+	ShareBefore float64     `json:"shareBefore"`
 }
 
 func calculateDividendYield(dividend *bizmandu.DividendHistory, year int, quanity int) DividendYield {
