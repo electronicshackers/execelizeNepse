@@ -120,6 +120,7 @@ func indexOf(element int, data []int) int {
 
 type DividendYield struct {
 	Ticker           string                `json:"ticker"`
+	Sector           string                `json:"sector"`
 	TotalCashYield   float64               `json:"totalCashYield"`
 	TotalQuantity    float64               `json:"totalQuantity"`
 	InitialQuantity  float64               `json:"initialQuantity"`

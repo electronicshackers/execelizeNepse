@@ -1,6 +1,7 @@
 package neweb
 
 import (
+	"context"
 	"fmt"
 	"nepse-backend/utils"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 const (
 	Health       = "web/menu"
+	Prove        = "authenticate/prove"
 	All          = "nots/securityDailyTradeStat/58"
 	PriceHistory = "nots/market/security/price"
 	MutualFund   = "nots/securityDailyTradeStat/66"
@@ -20,18 +22,43 @@ type NewebAPI struct {
 }
 
 func Neweb() (*NewebAPI, error) {
-	client := utils.NewClient(nil, os.Getenv("NEPSE"))
-
-	_, err := client.NewRequest(http.MethodGet, Health, nil)
+	var client *utils.Client
+	client = utils.NewClient(nil, os.Getenv("NEPSE"), "")
+	req, err := client.NewRequest(http.MethodGet, Prove, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	biz := &NewebAPI{
+	res := &utils.ProveResponse{}
+
+	if _, err := client.Do(context.Background(), req, res); err != nil {
+		return nil, err
+	}
+
+	prove := client.Wasm(*res)
+
+	client = utils.NewClient(nil, os.Getenv("NEPSE"), prove.Accesstoken)
+
+	newWeb := &NewebAPI{
 		client: client,
 	}
-	return biz, nil
+	return newWeb, nil
+}
+
+func (n *NewebAPI) Prove() (*utils.ProveResponse, error) {
+	req, err := n.client.NewRequest(http.MethodGet, Prove, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := &utils.ProveResponse{}
+
+	if _, err := n.client.Do(context.Background(), req, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (b *NewebAPI) buildHistorySlug(urlPath, ticker string) string {

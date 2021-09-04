@@ -1,9 +1,7 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	responses "nepse-backend/api/response"
 	"nepse-backend/nepse"
 	"nepse-backend/nepse/neweb"
@@ -69,10 +67,10 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 	var floorsheetContents []nepse.FloorsheetContent
 	for _, day := range days {
 		for _, v := range nepseSectors {
+			time.Sleep(4000 * time.Millisecond)
 			var count = 0
 			for {
-				time.Sleep(800 * time.Millisecond)
-				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000)
+				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000, true)
 
 				if err != nil {
 					responses.ERROR(w, 400, err)
@@ -274,8 +272,7 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 		for _, v := range nepseSectors {
 			var count = 0
 			for {
-				time.Sleep(800 * time.Millisecond)
-				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000)
+				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000, true)
 
 				if err != nil {
 					responses.ERROR(w, 400, err)
@@ -293,8 +290,6 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
-	document, _ := json.MarshalIndent(floorsheetContents, "", " ")
-	_ = ioutil.WriteFile("./floorsheet.json", document, 0644)
 	aggregatedDataBuy := make(map[string][]TransactionData)
 	aggregatedDataSell := make(map[string][]TransactionData)
 
@@ -368,6 +363,20 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	end := params.Get("end")
 	randomId := params.Get("id")
 
+	isBulk := params.Get("isBulk")
+
+	var isBulkRequest bool
+	sleepTime := 0
+
+	if isBulk == "true" {
+		isBulkRequest = true
+	}
+
+	if isBulk != "true" {
+		sleepTime = 400
+		isBulkRequest = false
+	}
+
 	days, err := utils.GetDateRange(w, start, end)
 
 	if err != nil {
@@ -413,8 +422,8 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 		var count = 0
 		for {
-			time.Sleep(1000 * time.Millisecond)
-			floorsheet, err := nepseBeta.GetFloorsheet(id, day, randomId, count, 2000)
+			time.Sleep(time.Duration(sleepTime) * time.Millisecond)
+			floorsheet, err := nepseBeta.GetFloorsheet(id, day, randomId, count, 2000, isBulkRequest)
 
 			if err != nil {
 				responses.ERROR(w, 400, err)
@@ -431,10 +440,6 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 		}
 	}
-
-	document, _ := json.MarshalIndent(floorsheetContents, "", " ")
-	_ = ioutil.WriteFile(fmt.Sprintf("./%s.json", ticker), document, 0644)
-
 	for _, sheetData := range floorsheetContents {
 		if sheetData.Buyermemberid != "" {
 			result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)

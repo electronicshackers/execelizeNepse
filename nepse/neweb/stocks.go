@@ -43,7 +43,6 @@ func (n *NewebAPI) GetStocks() ([]nepse.Ticker, error) {
 			Lasttradedprice: ticker.Lasttradedprice,
 		})
 	}
-
 	return stocks, nil
 }
 

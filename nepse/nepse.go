@@ -198,5 +198,5 @@ type NepseInterface interface {
 	GetStockDetails(ticker string)
 	GetSummary(ticker string)
 	GetPriceHistory(ticker string) ([]PriceHistoryMinified, error)
-	GetFloorsheet(stockId, businessDate, randomId string, page, size int) (*FloorsheetResponse, error)
+	GetFloorsheet(stockId, businessDate, randomId string, page, size int, isBulkRequest bool) (*FloorsheetResponse, error)
 }

@@ -16,7 +16,7 @@ type SmartWealthApi struct {
 }
 
 func SmartWealth() (*SmartWealthApi, error) {
-	client := utils.NewClient(nil, os.Getenv("SMART_WEALTH"))
+	client := utils.NewClient(nil, os.Getenv("SMART_WEALTH"), "")
 
 	_, err := client.NewRequest(http.MethodGet, Technical, nil)
 

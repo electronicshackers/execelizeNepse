@@ -7,14 +7,26 @@ import (
 	"io/ioutil"
 	"math"
 	responses "nepse-backend/api/response"
-	"nepse-backend/nepse/bizmandu"
 	"nepse-backend/utils"
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
+
+type Yields struct {
+	Ticker       string  `json:"ticker"`
+	Sector       string  `json:"sector"`
+	TotalBonus   float64 `json:"totalBonus"`
+	TotalCash    float64 `json:"totalCash"`
+	TotalShare   float64 `json:"totalShare"`
+	InitialShare string  `json:"initialShare"`
+}
+
+type Tickers struct {
+	SecurityName string `json:"securityName"`
+	Symbol       string `json:"symbol"`
+}
 
 type Rights struct {
 	Data []CompanyRights `json:"data"`
@@ -106,6 +118,7 @@ func (s *Server) GetDividends(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 	}
+
 	for _, v := range div.Data {
 		dividendMap[v.Stocksymbol] = append(dividendMap[v.Stocksymbol], v)
 	}
@@ -118,25 +131,34 @@ func (s *Server) GetDividends(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 	}
 
-	re, err := CalculateReturn(quantity, divSorted, rightSorted)
+	re, err := CalculateReturn(stock, quantity, divSorted, rightSorted)
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 	}
 
 	responses.JSON(w, http.StatusOK, map[string]interface{}{
-		"dividends": divSorted,
-		"rights":    rightSorted,
-		"return":    re,
+		"yields": re,
 	})
 
 }
 
-func CalculateReturn(quantity string, dividend []CompanyDividend, right []CompanyRights) (DividendYield, error) {
+func CalculateReturn(ticker, quantity string, dividend []CompanyDividend, right []CompanyRights) (DividendYield, error) {
 	var dividendYield DividendYield
 	if len(dividend) == 0 && len(right) == 0 {
 		fmt.Println("Noting to return!!")
 		return dividendYield, nil
 	}
+
+	var rigMap map[string][]CompanyRights
+
+	if len(right) != 0 {
+		rigMap = make(map[string][]CompanyRights)
+		for _, v := range right {
+			rigMap[v.Fiscalyearad] = append(rigMap[v.Fiscalyearad], v)
+		}
+	}
+
+	fmt.Println("rigMap", rigMap)
 
 	if len(dividend) == 0 {
 		fmt.Println("No dividend to return")
@@ -153,8 +175,15 @@ func CalculateReturn(quantity string, dividend []CompanyDividend, right []Compan
 
 	dividendYield.TotalQuantity = float64(quantityInt)
 	dividendYield.InitialQuantity = float64(quantityInt)
+	dividendYield.Ticker = ticker
 
-	for _, v := range dividend {
+	for i, v := range dividend {
+		test := rigMap[v.Fiscalyearad]
+
+		if len(test) != 0 {
+			fmt.Println("test", i, test)
+		}
+
 		cashInt, err := strconv.ParseFloat(v.Cash, 64)
 		if err != nil {
 			fmt.Println("Error in converting cash to int")
@@ -177,37 +206,9 @@ func CalculateReturn(quantity string, dividend []CompanyDividend, right []Compan
 		})
 		dividendYield.TotalCashYield = utils.ToFixed(dividendYield.TotalCashYield+cashInt*dividendYield.TotalQuantity, 2)
 		dividendYield.TotalQuantity = math.Floor(dividendYield.TotalQuantity + (bonusInt/100)*dividendYield.TotalQuantity)
+		dividendYield.Sector = v.Sectorname
 	}
 	return dividendYield, nil
-}
-
-func caelculateDividendYield(dividend *bizmandu.DividendHistory, year int, quanity int) DividendYield {
-	var dividendYield DividendYield
-	dividendYield.TotalQuantity = float64(quanity)
-	dividendYield.InitialQuantity = float64(quanity)
-	for _, div := range dividend.Message.Dividend {
-		if div.Bonus != 0 || div.Cash != 0 {
-			divYear := strings.Split(div.Year, "/")[0]
-			divYearInt, _ := strconv.Atoi(divYear)
-
-			if divYearInt > year {
-
-				dividendYield.YearlyYield = append(dividendYield.YearlyYield, YearlyDividendYield{
-					Year:        divYearInt,
-					Cash:        fmt.Sprintf("%.2f%%", div.Cash*100),
-					Bonus:       fmt.Sprintf("%.2f%%", div.Bonus*100),
-					CashBefore:  utils.ToFixed(dividendYield.TotalCashYield, 2),
-					CashAfter:   utils.ToFixed(dividendYield.TotalCashYield+div.Cash*100*dividendYield.TotalQuantity, 2),
-					ShareBefore: math.Floor(dividendYield.TotalQuantity),
-					ShareAfter:  math.Floor(dividendYield.TotalQuantity + div.Bonus*dividendYield.TotalQuantity),
-				})
-				dividendYield.TotalCashYield = utils.ToFixed(dividendYield.TotalCashYield+div.Cash*100*dividendYield.TotalQuantity, 2)
-				dividendYield.TotalQuantity = math.Floor(dividendYield.TotalQuantity + div.Bonus*dividendYield.TotalQuantity)
-			}
-		}
-
-	}
-	return dividendYield
 }
 
 func SortData(dividend []CompanyDividend, right []CompanyRights) ([]CompanyDividend, []CompanyRights, error) {

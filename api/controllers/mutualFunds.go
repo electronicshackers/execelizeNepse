@@ -18,7 +18,8 @@ import (
 var (
 	options     = []string{"whole", "sector", "topHolding", "topSold", "topBought", "netBought"}
 	MutualFunds = []string{"CMF1", "CMF2", "GIMES1", "KEF", "LEMF", "LUK", "NBF2", "NEF", "NIBLPF", "NIBSF1",
-		"NICBF", "NICGF", "NMB50", "NMBHF1", "PSF", "SAEF", "SBCF", "SEF", "SFMF", "SIGS2", "SLCF", "NIBSF2", "NIBLSF"}
+		"NICBF", "NICGF", "NMB50", "NMBHF1", "PSF", "SAEF", "SBCF", "SEF", "SFMF", "SIGS2", "SLCF", "NIBSF2", "NIBLSF",
+		"RBBMF"}
 )
 
 var test = make(map[string]string)

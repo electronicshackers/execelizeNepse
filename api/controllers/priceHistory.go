@@ -173,16 +173,15 @@ func getFilteredTickers(ticker []nepse.Ticker, sector string) []nepse.Ticker {
 }
 
 func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string, days []string) Result {
-	var closeStart, closeEnd float64
-	var max = minHistory[0].HighPrice
-	var minP = minHistory[0].LowPrice
-	var maxAvg = minHistory[0].AveragePrice
-	var minAvg = minHistory[0].AveragePrice
+	var closeStart, closeEnd, max, minP, maxAvg, minAvg, avg float64
+
+	var maxPriceArray, minPriceArray, avgArray []float64
 
 	for _, min := range minHistory {
-
 		if min.Date == start {
 			closeStart = min.Price
+			avg = min.AveragePrice
+
 		}
 
 		if min.Date == end {
@@ -190,28 +189,17 @@ func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string
 		}
 
 		for _, day := range days {
-
 			if day == min.Date {
-
-				if min.HighPrice > max {
-					max = min.HighPrice
-				}
-
-				if min.AveragePrice > maxAvg {
-					maxAvg = min.AveragePrice
-				}
-
-				if min.AveragePrice < minAvg {
-					minAvg = min.AveragePrice
-				}
-
-				if min.LowPrice < minP {
-					minP = min.LowPrice
-				}
+				maxPriceArray = append(maxPriceArray, min.HighPrice)
+				minPriceArray = append(minPriceArray, min.LowPrice)
+				avgArray = append(avgArray, min.AveragePrice)
 			}
 		}
-
 	}
+
+	_, max = utils.MinMax(maxPriceArray)
+	minP, _ = utils.MinMax(minPriceArray)
+	minAvg, maxAvg = utils.MinMax(avgArray)
 
 	changeClosed := closeEnd - closeStart
 
@@ -219,9 +207,9 @@ func preprocessChange(minHistory []nepse.PriceHistoryMinified, start, end string
 
 	changeAverage := maxAvg - minAvg
 
-	percentageChangeOnExtreme := (changeExtreme / minP) * 100
+	percentageChangeOnExtreme := (changeExtreme / closeStart) * 100
 
-	percentageChangeOnAverage := (changeAverage / minAvg) * 100
+	percentageChangeOnAverage := (changeAverage / avg) * 100
 
 	percentageChangedOnClosed := (changeClosed / closeStart) * 100
 

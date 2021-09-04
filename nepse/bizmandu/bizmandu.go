@@ -25,7 +25,7 @@ type BizmanduAPI struct {
 }
 
 func NewBizmandu() (*BizmanduAPI, error) {
-	client := utils.NewClient(nil, os.Getenv("BIZMANDU"))
+	client := utils.NewClient(nil, os.Getenv("BIZMANDU"), "")
 
 	_, err := client.NewRequest(http.MethodGet, Health, nil)
 
