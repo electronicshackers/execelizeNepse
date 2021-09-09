@@ -125,7 +125,7 @@ func checkResponse(r *http.Response) error {
 	return fmt.Errorf("request failed with status %d", status)
 }
 
-func (c *Client) Wasm(prove ProveResponse) ProveResponse {
+func (c *Client) Wasm(prove ProveResponse) (*ProveResponse, error) {
 	wasmBytes, _ := ioutil.ReadFile("css.wasm")
 
 	engine := wasmer.NewEngine()
@@ -143,9 +143,18 @@ func (c *Client) Wasm(prove ProveResponse) ProveResponse {
 	i, _ := cdx(prove.Salt2, prove.Salt1, prove.Salt3, prove.Salt5, prove.Salt4)
 	r, _ := rdx(prove.Salt2, prove.Salt1, prove.Salt3, prove.Salt4, prove.Salt5)
 
+	fmt.Println(n, l, i, r)
+	if n.(int32)+1 > l.(int32) {
+		fmt.Println("n+1 > l")
+		return nil, fmt.Errorf("n+1 > l")
+	}
+	if i.(int32)+1 > r.(int32) {
+		fmt.Println("i+1 > r")
+		return nil, fmt.Errorf("i+1 > r")
+	}
 	prove.Accesstoken = prove.Accesstoken[:n.(int32)] + prove.Accesstoken[n.(int32)+1:l.(int32)] + prove.Accesstoken[l.(int32)+1:]
 	prove.Refreshtoken = prove.Refreshtoken[:i.(int32)] + prove.Refreshtoken[i.(int32)+1:r.(int32)] + prove.Refreshtoken[r.(int32)+1:]
 
 	prove.Accesstoken = fmt.Sprintf("Salter %v", prove.Accesstoken)
-	return prove
+	return &prove, nil
 }

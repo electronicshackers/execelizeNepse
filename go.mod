@@ -8,4 +8,5 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/wasmerio/wasmer-go v1.0.4
+	golang.org/x/tools v0.1.5 // indirect
 )

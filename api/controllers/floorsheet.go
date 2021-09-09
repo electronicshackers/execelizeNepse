@@ -67,7 +67,7 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 	var floorsheetContents []nepse.FloorsheetContent
 	for _, day := range days {
 		for _, v := range nepseSectors {
-			time.Sleep(4000 * time.Millisecond)
+			time.Sleep(1800 * time.Millisecond)
 			var count = 0
 			for {
 				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000, true)

@@ -36,7 +36,7 @@ func Neweb() (*NewebAPI, error) {
 		return nil, err
 	}
 
-	prove := client.Wasm(*res)
+	prove, _ := client.Wasm(*res)
 
 	client = utils.NewClient(nil, os.Getenv("NEPSE"), prove.Accesstoken)
 
