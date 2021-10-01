@@ -18,6 +18,7 @@ const (
 	IncomeStatement = "tearsheet/financial/incomeStatement"
 	Dividend        = "tearsheet/dividend/"
 	MutualFund      = "tearsheet/summaryMf/"
+	Technical       = "tradingView/history"
 )
 
 type BizmanduAPI struct {
@@ -41,6 +42,10 @@ func NewBizmandu() (*BizmanduAPI, error) {
 
 func (b *BizmanduAPI) buildTickerSlug(urlPath, ticker string) string {
 	return fmt.Sprintf("%s/?tkr=%s", urlPath, ticker)
+}
+
+func (b *BizmanduAPI) buildTickerSlugTechnicalURL(urlPath, ticker, resoultion string, start, end int64) string {
+	return fmt.Sprintf("%s?symbol=%s&resolution=%s&from=%d&to=%d", urlPath, ticker, resoultion, start, end)
 }
 
 func (b *BizmanduAPI) buildPriceHistorySlug(urlPath, ticker string, from, to int64) string {
