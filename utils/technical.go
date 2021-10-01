@@ -63,6 +63,17 @@ func (t TechnicalData) MovingAverage(prices []float64, days int, avg float64) []
 	return ma
 }
 
+func (t TechnicalData) ExponentialMovingAverage(prices []float64, days int, simpleAverage float64, multiplier float64) []float64 {
+	var ema []float64
+	ema = append(ema, simpleAverage)
+	for _, v := range prices[days:] {
+		average := (v-simpleAverage)*multiplier + simpleAverage
+		simpleAverage = average
+		ema = append(ema, average)
+	}
+	return ema
+}
+
 func (t TechnicalData) RelativeStrength(averageLoss, averageGain []float64) []float64 {
 	var rs []float64
 	for i := 0; i < len(averageLoss); i++ {
@@ -77,4 +88,16 @@ func (t TechnicalData) RelativeStrengthIndicator(relativeStrength []float64) []f
 		rsi = append(rsi, 100-100/(1+relativeStrength[i]))
 	}
 	return rsi
+}
+
+func (t TechnicalData) Multiplier(n float64) float64 {
+	return (2 / (n + 1))
+}
+
+func (t TechnicalData) MovingDifference(leadingPrices []float64, trailingPrices []float64, days int) []float64 {
+	var md []float64
+	for index, v := range leadingPrices[days:] {
+		md = append(md, v-trailingPrices[index])
+	}
+	return md
 }
