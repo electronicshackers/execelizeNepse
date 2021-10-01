@@ -101,3 +101,32 @@ func (t TechnicalData) MovingDifference(leadingPrices []float64, trailingPrices 
 	}
 	return md
 }
+
+func (t TechnicalData) RSI() []float64 {
+	diff := t.Diff()
+	gains := t.Gains(diff)
+	losses := t.Losses(diff)
+
+	averageGain := t.Average(gains, 14)
+	averageLoss := t.Average(losses, 14)
+
+	averageGains := t.MovingAverage(gains, 14, averageGain)
+	averageLosses := t.MovingAverage(losses, 14, averageLoss)
+
+	relativeStrength := t.RelativeStrength(averageLosses, averageGains)
+	rsi := t.RelativeStrengthIndicator(relativeStrength)
+	return rsi
+}
+
+func (t TechnicalData) MACD() ([]float64, []float64, []float64) {
+	ema12 := t.ExponentialMovingAverage(t.C, 12, t.Average(t.C, 12), t.Multiplier(12))
+	ema26 := t.ExponentialMovingAverage(t.C, 26, t.Average(t.C, 26), t.Multiplier(26))
+
+	macd := t.MovingDifference(ema12, ema26, 14)
+
+	signal := t.ExponentialMovingAverage(macd, 9, t.Average(macd, 9), t.Multiplier(9))
+
+	histogram := t.MovingDifference(macd, signal, 8)
+
+	return macd, signal, histogram
+}
