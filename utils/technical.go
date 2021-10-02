@@ -1,6 +1,9 @@
 package utils
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 type TechnicalData struct {
 	S string    `json:"s"`
@@ -10,6 +13,18 @@ type TechnicalData struct {
 	H []float64 `json:"h"`
 	L []float64 `json:"l"`
 	V []int     `json:"v"`
+}
+
+type kv struct {
+	Key   float64
+	Value float64
+}
+
+type KeyLevels struct {
+	LTP       float64
+	Min       float64
+	Max       float64
+	KeyLevels []kv
 }
 
 func (t TechnicalData) Diff() []float64 {
@@ -63,17 +78,6 @@ func (t TechnicalData) MovingAverage(prices []float64, days int, avg float64) []
 	return ma
 }
 
-func (t TechnicalData) ExponentialMovingAverage(prices []float64, days int, simpleAverage float64, multiplier float64) []float64 {
-	var ema []float64
-	ema = append(ema, simpleAverage)
-	for _, v := range prices[days:] {
-		average := (v-simpleAverage)*multiplier + simpleAverage
-		simpleAverage = average
-		ema = append(ema, average)
-	}
-	return ema
-}
-
 func (t TechnicalData) RelativeStrength(averageLoss, averageGain []float64) []float64 {
 	var rs []float64
 	for i := 0; i < len(averageLoss); i++ {
@@ -119,8 +123,8 @@ func (t TechnicalData) RSI() []float64 {
 }
 
 func (t TechnicalData) MACD() ([]float64, []float64, []float64) {
-	ema12 := t.ExponentialMovingAverage(t.C, 12, t.Average(t.C, 12), t.Multiplier(12))
-	ema26 := t.ExponentialMovingAverage(t.C, 26, t.Average(t.C, 26), t.Multiplier(26))
+	ema12 := t.EMA(12)
+	ema26 := t.EMA(26)
 
 	macd := t.MovingDifference(ema12, ema26, 14)
 
@@ -129,4 +133,52 @@ func (t TechnicalData) MACD() ([]float64, []float64, []float64) {
 	histogram := t.MovingDifference(macd, signal, 8)
 
 	return macd, signal, histogram
+}
+
+func (t TechnicalData) ExponentialMovingAverage(prices []float64, days int, simpleAverage float64, multiplier float64) []float64 {
+	var ema []float64
+	ema = append(ema, simpleAverage)
+	for _, v := range prices[days:] {
+		average := (v-simpleAverage)*multiplier + simpleAverage
+		simpleAverage = average
+		ema = append(ema, average)
+	}
+	return ema
+}
+
+func (t TechnicalData) EMA(day float64) []float64 {
+	return t.ExponentialMovingAverage(t.C, int(day), t.Average(t.C, int(day)), t.Multiplier(day))
+}
+
+func (t TechnicalData) KeyLevels() KeyLevels {
+	var allPrices []float64
+	allPrices = append(allPrices, t.C...)
+	allPrices = append(allPrices, t.H...)
+	allPrices = append(allPrices, t.L...)
+
+	priceMap := make(map[float64]float64)
+
+	for _, price := range allPrices {
+		priceMap[price]++
+	}
+
+	var brokerSellSorted []kv
+	for k, v := range priceMap {
+		brokerSellSorted = append(brokerSellSorted, kv{k, v})
+	}
+
+	sort.Slice(brokerSellSorted, func(i, j int) bool {
+		return brokerSellSorted[i].Value > brokerSellSorted[j].Value
+	})
+
+	min, max := MinMax(allPrices)
+
+	ltp := t.C[len(t.C)-1]
+
+	return KeyLevels{
+		LTP:       ltp,
+		Min:       min,
+		Max:       max,
+		KeyLevels: brokerSellSorted[0:10],
+	}
 }
