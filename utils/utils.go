@@ -3,10 +3,13 @@ package utils
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -28,6 +31,7 @@ type ProveResponse struct {
 
 const (
 	defaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+	localCertFile    = "test.crt"
 )
 
 type Client struct {
@@ -38,8 +42,32 @@ type Client struct {
 }
 
 func NewClient(httpClient *http.Client, apiURL string, auth string) *Client {
+
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	// Read in the cert file
+	certs, err := ioutil.ReadFile(localCertFile)
+	if err != nil {
+		log.Fatalf("Failed to append %q to RootCAs: %v", localCertFile, err)
+	}
+
+	// Append our cert to the system pool
+	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+		log.Println("No certs appended, using system certs only")
+	}
+
+	config := &tls.Config{
+		RootCAs: rootCAs,
+	}
+	tr := &http.Transport{TLSClientConfig: config}
 	if httpClient == nil {
-		httpClient = &http.Client{}
+		httpClient = &http.Client{
+			Transport: tr,
+		}
 	}
 
 	baseURL, _ := url.Parse(apiURL)

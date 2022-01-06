@@ -12,7 +12,7 @@ type TechnicalData struct {
 	O []float64 `json:"o"`
 	H []float64 `json:"h"`
 	L []float64 `json:"l"`
-	V []int     `json:"v"`
+	V []float64 `json:"v"`
 }
 
 type kv struct {

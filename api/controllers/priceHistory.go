@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	responses "nepse-backend/api/response"
 	"nepse-backend/nepse"
 	"nepse-backend/nepse/bizmandu"
@@ -56,6 +57,7 @@ func (server *Server) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
 	nep, err := neweb.Neweb()
 
 	if err != nil {
+		fmt.Println("err", err)
 		http.Error(w, "Error in fetching data from Neweb", http.StatusBadRequest)
 		return
 	}
