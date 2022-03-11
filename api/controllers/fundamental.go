@@ -188,7 +188,7 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 		var keys []KeyFinancialMetrics
 
 		for _, ticker := range sectorStocks {
-			if ticker.Ticker == "MKJC" || ticker.Ticker == "SLI" || ticker.Ticker == "MLBS" {
+			if ticker.Ticker == "MKJC" || ticker.Ticker == "SLI" || ticker.Ticker == "MLBS" || ticker.Ticker == "ENLs" {
 				continue
 			}
 			var key KeyFinancialMetrics
