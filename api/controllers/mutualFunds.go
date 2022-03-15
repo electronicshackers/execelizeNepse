@@ -129,7 +129,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		mfsInfo.SectorMap[label] = utils.ToFixed((value / float64(len(mfsInfo.MutualFundKeyMetrics)) * 100), 2)
 	}
 
-	for k, _ := range mfsInfo.TopstockboughtMap {
+	for k := range mfsInfo.TopstockboughtMap {
 		mfsInfo.NetstockboughtMap[k] = mfsInfo.TopstockboughtMap[k] - mfsInfo.TopstocksoldMap[k]
 	}
 
