@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Some commit here as well
 func main() {
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: "https://74756990a28846ad925c4407371b0a14@o1184422.ingest.sentry.io/6301992",
