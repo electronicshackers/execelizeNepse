@@ -117,6 +117,15 @@ type ManufacturingKeyMetrics struct {
 	TotalRevenue              float64 `json:"totalRevenue"`
 }
 
+// GetFundamentalSectorwirse godoc
+// @Summary Create the fundamental report of the company sectorwise
+// @Description This endpoint will create Sectorwise file with key indicators representating certain sectors so that we can compare the performance of the company in same sector
+// @Param sector query string true "sector"
+// @Tags fundamental
+// @Accept  json
+// @Produce  json
+// @Success 200 {object}
+// @Router /api/v1/fundamental [get]
 func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Request) {
 	f, err := os.Create("Fundamental.prof")
 	if err != nil {
@@ -188,7 +197,7 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 		var keys []KeyFinancialMetrics
 
 		for _, ticker := range sectorStocks {
-			if ticker.Ticker == "MKJC" || ticker.Ticker == "SLI" || ticker.Ticker == "MLBS" || ticker.Ticker == "ENLs" {
+			if ticker.Ticker == "MKJC" || ticker.Ticker == "SLI" || ticker.Ticker == "MLBS" || ticker.Ticker == "ENL" {
 				continue
 			}
 			var key KeyFinancialMetrics
@@ -336,7 +345,7 @@ func (server *Server) GetFundamentalSectorwise(w http.ResponseWriter, r *http.Re
 				listedShares := detail.Message.Summary.Listedshares
 				if len(incomeStatement.Message.Data) != 0 {
 					key.BFI.DistributableProfit = float64(incomeStatement.Message.Data[0].Freeprofit)
-					key.BFI.DistibutableProfitPerShare = utils.ToFixed((key.BFI.DistributableProfit/listedShares)*100, 2)
+					key.BFI.DistibutableProfitPerShare = utils.ToFixed((key.BFI.DistributableProfit * 1000 / listedShares), 2)
 				}
 
 				if len(financial.Message.Data) != 0 {

@@ -26,16 +26,16 @@ var test = make(map[string]string)
 
 type kv struct {
 	Key   string
-	Value int64
+	Value float64
 }
 
 type MutualFund struct {
 	MutualFundKeyMetrics []MutualFundKeyMetrics `json:"mutualFundKeyMetrics"`
 	SectorMap            map[string]float64     `json:"sectorMap"`
-	TopHoldingMap        map[string]int64       `json:"topHoldingMap"`
-	TopstockboughtMap    map[string]int64       `json:"topStockBoughtMap"`
-	TopstocksoldMap      map[string]int64       `json:"topStockSoldMap"`
-	NetstockboughtMap    map[string]int64       `json:"netStockBoughtMap"`
+	TopHoldingMap        map[string]float64     `json:"topHoldingMap"`
+	TopstockboughtMap    map[string]float64     `json:"topStockBoughtMap"`
+	TopstocksoldMap      map[string]float64     `json:"topStockSoldMap"`
+	NetstockboughtMap    map[string]float64     `json:"netStockBoughtMap"`
 }
 
 type MutualFundKeyMetrics struct {
@@ -53,6 +53,14 @@ type MutualFundKeyMetrics struct {
 	Topstocksold         []bizmandu.Topstock         `json:"topStockSold"`
 }
 
+// GetMutualFundsInfo godoc
+// @Summary Create the Mutual Funds reports about holding, bought and sold stocks
+// @Description This endpoint will create the Mutual Funds reports about holding, bought and sold stocks
+// @Tags mutualfund
+// @Accept  json
+// @Produce  json
+// @Success 200 {object}
+// @Router /api/v1/mutualfund [get]
 func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request) {
 	biz, err := bizmandu.NewBizmandu()
 
@@ -104,10 +112,10 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	mfsInfo.SectorMap = make(map[string]float64)
-	mfsInfo.TopHoldingMap = make(map[string]int64)
-	mfsInfo.TopstockboughtMap = make(map[string]int64)
-	mfsInfo.TopstocksoldMap = make(map[string]int64)
-	mfsInfo.NetstockboughtMap = make(map[string]int64)
+	mfsInfo.TopHoldingMap = make(map[string]float64)
+	mfsInfo.TopstockboughtMap = make(map[string]float64)
+	mfsInfo.TopstocksoldMap = make(map[string]float64)
+	mfsInfo.NetstockboughtMap = make(map[string]float64)
 
 	for _, mf := range mfsInfo.MutualFundKeyMetrics {
 		for _, sector := range mf.Sector {
@@ -115,7 +123,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 		}
 
 		for _, topHolding := range mf.Topstockholdings {
-			mfsInfo.TopHoldingMap[topHolding.Ticker] += topHolding.Qty
+			mfsInfo.TopHoldingMap[topHolding.Ticker] += float64(topHolding.Qty)
 		}
 		for _, topBought := range mf.Topstockbought {
 			mfsInfo.TopstockboughtMap[topBought.Ticker] += topBought.Noofstocks
@@ -219,7 +227,7 @@ func (server *Server) GetMutualFundsInfo(w http.ResponseWriter, r *http.Request)
 	responses.JSON(w, http.StatusOK, mfsInfo)
 }
 
-func SortMap(m map[string]int64, include bool) []kv {
+func SortMap(m map[string]float64, include bool) []kv {
 
 	var ss []kv
 	for k, v := range m {
@@ -271,7 +279,7 @@ func PieChart(aggregateDate map[string]float64, title string) *charts.Pie {
 	return pie
 }
 
-func BarGraph(aggregatedData map[string]int64, title string, includeMutualFund bool) *charts.Bar {
+func BarGraph(aggregatedData map[string]float64, title string, includeMutualFund bool) *charts.Bar {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{

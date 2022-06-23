@@ -110,7 +110,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 
 // NewRequest creates an API request. The given URL is relative to the Client's
 // BaseURL.
-func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(method, url string, body interface{}, opts ...interface{}) (*http.Request, error) {
 
 	u, err := c.BaseURL.Parse(url)
 	if err != nil {
@@ -140,6 +140,10 @@ func (c *Client) NewRequest(method, url string, body interface{}) (*http.Request
 
 	if c.Headers != "" {
 		req.Header.Set("Authorization", c.Headers)
+	}
+	if len(opts) != 0 {
+		fmt.Println("called this......")
+		req.Header.Set("Authorization", opts[0].(string))
 	}
 	return req, nil
 }
@@ -171,17 +175,12 @@ func (c *Client) Wasm(prove ProveResponse) (*ProveResponse, error) {
 	i, _ := cdx(prove.Salt2, prove.Salt1, prove.Salt3, prove.Salt5, prove.Salt4)
 	r, _ := rdx(prove.Salt2, prove.Salt1, prove.Salt3, prove.Salt4, prove.Salt5)
 
-	fmt.Println(n, l, i, r)
-	if n.(int32)+1 > l.(int32) {
-		fmt.Println("n+1 > l")
-		return nil, fmt.Errorf("n+1 > l")
+	if n.(int32)+1 < l.(int32) {
+		prove.Accesstoken = prove.Accesstoken[:n.(int32)] + prove.Accesstoken[n.(int32)+1:l.(int32)] + prove.Accesstoken[l.(int32)+1:]
 	}
-	if i.(int32)+1 > r.(int32) {
-		fmt.Println("i+1 > r")
-		return nil, fmt.Errorf("i+1 > r")
+	if i.(int32)+1 < r.(int32) {
+		prove.Refreshtoken = prove.Refreshtoken[:i.(int32)] + prove.Refreshtoken[i.(int32)+1:r.(int32)] + prove.Refreshtoken[r.(int32)+1:]
 	}
-	prove.Accesstoken = prove.Accesstoken[:n.(int32)] + prove.Accesstoken[n.(int32)+1:l.(int32)] + prove.Accesstoken[l.(int32)+1:]
-	prove.Refreshtoken = prove.Refreshtoken[:i.(int32)] + prove.Refreshtoken[i.(int32)+1:r.(int32)] + prove.Refreshtoken[r.(int32)+1:]
 
 	prove.Accesstoken = fmt.Sprintf("Salter %v", prove.Accesstoken)
 	return &prove, nil

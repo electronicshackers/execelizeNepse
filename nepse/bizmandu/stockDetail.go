@@ -138,7 +138,7 @@ type Topstockholdings struct {
 
 type Topstock struct {
 	Ticker       string  `json:"ticker"`
-	Noofstocks   int64   `json:"noOfStocks"`
+	Noofstocks   float64 `json:"noOfStocks"`
 	Totalholding float64 `json:"totalHolding"`
 }
 

@@ -114,21 +114,21 @@ func GetDateRange(w http.ResponseWriter, start, end string) ([]string, error) {
 		return days, errors.New("start date is invalid")
 	}
 
-	startDay := startDate.Weekday().String()
-	if startDay == "Friday" || startDay == "Saturday" {
-		return days, errors.New("start date should be a weekday")
-	}
+	// startDay := startDate.Weekday().String()
+	// if startDay == "Sunday" || startDay == "Saturday" {
+	// 	return days, errors.New("start date should be a weekday")
+	// }
 
 	endDate, err := StringToTime(end)
 	if err != nil {
 		return days, errors.New("end date is invalid")
 	}
 
-	endDay := endDate.Weekday().String()
+	// endDay := endDate.Weekday().String()
 
-	if endDay == "Friday" || endDay == "Saturday" {
-		return days, errors.New("end date should be a weekday")
-	}
+	// if endDay == "Friday" || endDay == "Saturday" {
+	// 	return days, errors.New("end date should be a weekday")
+	// }
 
 	// find the difference in days between start and end date
 	diffDays := endDate.Sub(startDate).Hours() / 24

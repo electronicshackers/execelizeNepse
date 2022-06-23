@@ -18,10 +18,10 @@ import (
 
 type FloorsheetResult struct {
 	Ticker                string             `json:"ticker"`
-	BuyerQuantityMap      map[string]int64   `json:"buyerQuantityMap"`
+	BuyerQuantityMap      map[string]float64 `json:"buyerQuantityMap"`
 	BuyerTurnOverMap      map[string]float64 `json:"buyerTurnOverMap"`
 	BuyerAveragePriceMap  map[string]float64 `json:"buyerAveragePriceMap"`
-	SellerQuantityMap     map[string]int64   `json:"sellerQuantityMap"`
+	SellerQuantityMap     map[string]float64 `json:"sellerQuantityMap"`
 	SellerTurnOverMap     map[string]float64 `json:"sellerTurnOverMap"`
 	SellerAveragePriceMap map[string]float64 `json:"sellerAveragePriceMap"`
 }
@@ -34,6 +34,17 @@ type TransactionData struct {
 	BrokerPercentageShare float64
 }
 
+// FloorsheetAnalysis godoc
+// @Summary Analysis the Floorsheet of all the stocks between start and end date
+// @Description Get Pumped/Dumped Stock Top Broker Buy/Sell in html format using go-echarts
+// @Param start query string true "start"
+// @Param end query string true "end"
+// @Param id query string true "id"
+// @Tags floorsheet
+// @Accept  json
+// @Produce  json
+// @Success 200 {object}
+// @Router /api/v1/floorsheet/analysis [get]
 func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
@@ -67,7 +78,7 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 	var floorsheetContents []nepse.FloorsheetContent
 	for _, day := range days {
 		for _, v := range nepseSectors {
-			time.Sleep(1800 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			var count = 0
 			for {
 				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000, true)
@@ -165,7 +176,7 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	var brokerBuySorted []kv
 	for k, v := range brokerBuyVolume {
-		brokerBuySorted = append(brokerBuySorted, kv{k, v})
+		brokerBuySorted = append(brokerBuySorted, kv{k, float64(v)})
 	}
 
 	sort.Slice(brokerBuySorted, func(i, j int) bool {
@@ -183,7 +194,7 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	var brokerSellSorted []kv
 	for k, v := range brokerSellVolume {
-		brokerSellSorted = append(brokerSellSorted, kv{k, v})
+		brokerSellSorted = append(brokerSellSorted, kv{k, float64(v)})
 	}
 	sort.Slice(brokerSellSorted, func(i, j int) bool {
 		return brokerSellSorted[i].Value > brokerSellSorted[j].Value
@@ -238,6 +249,17 @@ func (s *Server) FloorsheetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetFloorsheetAggregated godoc
+// @Summary Analysis the Floorsheet of all the stocks between start and end date
+// @Description Get Pumped/Dumped Stock Top Broker Buy/Sell in html format using go-echarts(aggregated)
+// @Param start query string true "start"
+// @Param end query string true "end"
+// @Param id query string true "id"
+// @Tags floorsheet
+// @Accept  json
+// @Produce  json
+// @Success 200 {object}
+// @Router /api/v1/floorsheet/bulk [get]
 func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
@@ -274,17 +296,14 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 			for {
 				floorsheet, err := nepseBeta.GetFloorsheet(v.Id, day, randomId, count, 2000, true)
 
-				if err != nil {
-					responses.ERROR(w, 400, err)
-					return
-				}
+				if err == nil {
+					floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
 
-				floorsheetContents = append(floorsheetContents, floorsheet.Floorsheets.Content...)
-
-				isLastPage := floorsheet.Floorsheets.Last
-				count++
-				if isLastPage {
-					break
+					isLastPage := floorsheet.Floorsheets.Last
+					count++
+					if isLastPage {
+						break
+					}
 				}
 
 			}
@@ -355,6 +374,18 @@ func (s *Server) GetFloorSheetAggregated(w http.ResponseWriter, r *http.Request)
 	responses.JSON(w, 200, finalDataBuy)
 }
 
+// GetFloorsheet godoc
+// @Summary Floorsheet of single the stocks between start and end date
+// @Description Get the floorsheet of single stock (Pumper, Dumper, HODLers) in html format using go-echarts
+// @Param start query string true "start"
+// @Param end query string true "end"
+// @Param id query string true "id"
+// @Param ticker query string true "ticker"
+// @Tags floorsheet
+// @Accept  json
+// @Produce  json
+// @Success 200 {object}
+// @Router /api/v1/floorsheet [get]
 func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
@@ -409,8 +440,8 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 
 	var result FloorsheetResult
 
-	result.BuyerQuantityMap = make(map[string]int64)
-	result.SellerQuantityMap = make(map[string]int64)
+	result.BuyerQuantityMap = make(map[string]float64)
+	result.SellerQuantityMap = make(map[string]float64)
 	result.BuyerTurnOverMap = make(map[string]float64)
 	result.SellerTurnOverMap = make(map[string]float64)
 	result.BuyerAveragePriceMap = make(map[string]float64)
@@ -442,10 +473,10 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, sheetData := range floorsheetContents {
 		if sheetData.Buyermemberid != "" {
-			result.BuyerQuantityMap[sheetData.Buyermemberid] += int64(sheetData.Contractquantity)
+			result.BuyerQuantityMap[sheetData.Buyermemberid] += float64(sheetData.Contractquantity)
 		}
 		if sheetData.Sellermemberid != "" {
-			result.SellerQuantityMap[sheetData.Sellermemberid] += int64(sheetData.Contractquantity)
+			result.SellerQuantityMap[sheetData.Sellermemberid] += float64(sheetData.Contractquantity)
 		}
 		if sheetData.Buyermemberid != "" {
 			result.BuyerTurnOverMap[sheetData.Buyermemberid] += sheetData.Contractamount
@@ -477,7 +508,7 @@ func (s *Server) GetFloorsheet(w http.ResponseWriter, r *http.Request) {
 	responses.JSON(w, http.StatusOK, result)
 }
 
-func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title string) *charts.Bar {
+func BarGraphFS(aggregatedData, alterAggregateData map[string]float64, title string) *charts.Bar {
 	bar := charts.NewBar()
 
 	bar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
@@ -494,7 +525,7 @@ func BarGraphFS(aggregatedData, alterAggregateData map[string]int64, title strin
 
 	var alterSorted []kv
 	for _, v := range topSorted {
-		alterSorted = append(alterSorted, kv{v.Key, alterAggregateData[v.Key]})
+		alterSorted = append(alterSorted, kv{v.Key, float64(alterAggregateData[v.Key])})
 	}
 
 	// Put data into instance

@@ -14,11 +14,14 @@ func (n *NewebAPI) GetFloorsheet(stockId, businessDate, randomId string, page, s
 	url := n.buildFloorsheetSlug(stockId, businessDate, page, size)
 	ok := test{Id: randomId}
 
-	if isBulkRequest {
-		n.RecursiveGetToken()
+	token, err := n.RecursiveGetToken()
+	if err != nil {
+		return nil, err
 	}
 
-	req, err := n.client.NewRequest(http.MethodPost, url, ok)
+	// n.RecursiveGetToken()
+
+	req, err := n.client.NewRequest(http.MethodPost, url, ok, token)
 	if err != nil {
 		return nil, err
 	}
@@ -31,24 +34,21 @@ func (n *NewebAPI) GetFloorsheet(stockId, businessDate, randomId string, page, s
 	return res, nil
 }
 
-func (n *NewebAPI) RecursiveGetToken() error {
+func (n *NewebAPI) RecursiveGetToken() (string, error) {
 	var isError = false
 	headers, err := n.Prove()
 	if err != nil {
-		isError = true
+		return "", err
 	}
 	token, err := n.client.Wasm(*headers)
 	if err != nil {
-		isError = true
+		return "", err
 	}
 	if isError {
 		n.RecursiveGetToken()
 		isError = false
 	}
-	if token != nil {
-		n.client.Headers = token.Accesstoken
-	}
 
-	return nil
+	return token.Accesstoken, nil
 
 }

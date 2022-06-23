@@ -7,3 +7,5 @@ Steps to run the Project
 2. Run `go run main.go` to start the server
 
 I'll be adding Swagger Documentation's for Existing APIs soon.
+
+openssl s_client -showcerts -servername newweb.nepalstock.com -connect newweb.nepalstock.com:443
